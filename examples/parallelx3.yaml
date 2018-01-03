@@ -1,0 +1,25 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: a01droidrun
+spec:
+  parallelism: 3
+  backoffLimit: 3
+  template:
+    metadata:
+      name: a01droidrun
+    spec:
+      containers:
+      - name: a01droid
+        image: a01reg.azurecr.io/a01droid:0.0.5-alpine-python3.6
+        command: ["python",  "/app/job.py", "a01store", "3"]
+        env:
+        - name: ENV_POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: ENV_NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+      restartPolicy: OnFailure
