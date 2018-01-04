@@ -102,3 +102,6 @@ ENV/
 
 # IDE and Editor
 .vscode/
+
+# Kubernetes
+secret.yaml
