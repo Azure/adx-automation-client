@@ -3,3 +3,4 @@
 .idea/workspace.xml
 __pycache__/
 *.egg-info/
+secret.yaml
