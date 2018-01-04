@@ -23,9 +23,9 @@ import yaml
 
 logger = logging.getLogger('A01')
 
-LOG_FILE = 'https://azureclia01log.file.core.windows.net/k8slog/{}?' \
-           'se=2019-01-01T00%3A00%3A00Z&sp=r&sv=2017-04-17&sr=s&sig=v/4afGXPe5ENN1K7zIw1oQVUm73LDCZPEFgp6NUerh4%3D'
-
+LOG_FILE = 'https://azureclia01log.file.core.windows.net/k8slog/{}' \
+           '?sv=2017-04-17&ss=f&srt=o&sp=r&se=2019-01-01T00:00:00Z&st=2018-01-04T10:21:21Z&' \
+           'spr=https&sig=I9Ajm2i8Knl3hm1rfN%2Ft2E934trzj%2FNnozLYhQ%2Bb7TE%3D'
 
 @functools.lru_cache(maxsize=1)
 def get_store_uri(store) -> str:

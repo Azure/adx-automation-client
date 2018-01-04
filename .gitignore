@@ -1,6 +1,6 @@
 .vscode/
 .cache/
-.idea/workspace.xml
+.idea/
 
 # python
 __pycache__/
