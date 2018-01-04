@@ -1,6 +1,13 @@
 .vscode/
 .cache/
 .idea/workspace.xml
+
+# python
 __pycache__/
 *.egg-info/
+dist/
+build/
+
+# just in case
 secret.yaml
+
