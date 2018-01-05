@@ -5,7 +5,7 @@
 
 from setuptools import setup
 
-VERSION = "0.1.0"
+VERSION = "0.2.0"
 
 CLASSIFIERS = [
     'Development Status :: 4 - Beta',
@@ -34,6 +34,9 @@ setup(
     packages=[
         'a01',
     ],
+    package_dir={
+        '': 'src'
+    },
     entry_points={
         'console_scripts': [
             'a01=a01.__main__:main'
