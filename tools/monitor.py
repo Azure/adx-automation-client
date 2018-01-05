@@ -12,7 +12,7 @@ from subprocess import check_output
 run_id = sys.argv[1]
 
 store_ip = check_output(
-    'kubectl get service a01store -ojsonpath={.status.loadBalancer.ingress[0].ip}'.split(' ')).decode('utf-8')
+    'kubectl get service task-store-web-service -ojsonpath={.status.loadBalancer.ingress[0].ip}'.split(' ')).decode('utf-8')
 store_uri = f'http://{store_ip}'
 
 

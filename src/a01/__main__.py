@@ -23,13 +23,15 @@ import yaml
 
 logger = logging.getLogger('A01')
 
+KUBE_STORE_NAME= 'task-store-web-service'
 LOG_FILE = 'https://azureclia01log.file.core.windows.net/k8slog/{}' \
            '?sv=2017-04-17&ss=f&srt=o&sp=r&se=2019-01-01T00:00:00Z&st=2018-01-04T10:21:21Z&' \
            'spr=https&sig=I9Ajm2i8Knl3hm1rfN%2Ft2E934trzj%2FNnozLYhQ%2Bb7TE%3D'
 
-@functools.lru_cache(maxsize=1)
-def get_store_uri(store) -> str:
-    cmd = f'kubectl get service {store}' + ' -ojsonpath={.status.loadBalancer.ingress[0].ip}'
+
+@functools.lru_cache(maxsize=4)
+def get_store_uri() -> str:
+    cmd = f'kubectl get service {KUBE_STORE_NAME}' + ' -ojsonpath={.status.loadBalancer.ingress[0].ip}'
     try:
         store_ip = check_output(shlex.split(cmd)).decode('utf-8')
         return f'http://{store_ip}'
@@ -50,12 +52,13 @@ def get_arguments() -> argparse.Namespace:
 
     get_run = get_actions_root.add_parser('run', help='Retrieve run data.')
     get_run.add_argument('id', help='The run id')
-    get_run.add_argument('--store', help='The name of the task store. Default: a01store.', default='a01store')
     get_run.set_defaults(func=list_run)
+
+    get_run = get_actions_root.add_parser('runs', help='Retrieve all the run.')
+    get_run.set_defaults(func=list_runs)
 
     get_task = get_actions_root.add_parser('task', help='Retrieve task data.')
     get_task.add_argument('id', help='The task id. Support multiple IDs.', nargs='+')
-    get_task.add_argument('--store', help='The name of the task store. Default: a01store.', default='a01store')
     get_task.add_argument('--log', help='Retrieve the log of the task', action='store_true')
     get_task.add_argument('--run', help='The run id (required when retrieve log. will be remove later)')
     get_task.set_defaults(func=show_task)
@@ -70,7 +73,6 @@ def get_arguments() -> argparse.Namespace:
                             help='The number of job to run in parallel. Can be scaled later through kubectl.')
     create_run.add_argument('--dry-run', help='List the tasks instead of actually schedule a run.', action='store_true')
     create_run.add_argument('--from-failures', help='Create the run base on the failed tasks of another run')
-    create_run.add_argument('--store', help='The name of the task store. Default: a01store.', default='a01store')
     create_run.add_argument('--path-prefix', help='Filter the task base on the test path prefix')
     create_run.add_argument('--live', help='Run test live', action='store_true')
     create_run.add_argument('--service-principal-secret', default='azurecli-live-sp', dest='sp_secret',
@@ -79,7 +81,21 @@ def get_arguments() -> argparse.Namespace:
                             help='The kubernetes secret providing Azure Storage Account credential for logging')
     create_run.set_defaults(func=schedule_run)
 
+    delete_actions = sub.add_parser('delete', help='Delete objects')
+    delete_actions.set_defaults(func=lambda _: delete_actions.print_help())
+    delete_actions_root = delete_actions.add_subparsers(title='Sub Commands')
+
+    delete_run = delete_actions_root.add_parser('run', help='Delete a run')
+    delete_run.add_argument('id', help='The run id. Support multiple IDs', nargs='+')
+    delete_run.set_defaults(func=remove_run)
+
     return parser.parse_args()
+
+
+def remove_run(args):
+    for each in args.id:
+        resp = requests.delete(f'{get_store_uri()}/run/{each}')
+        resp.raise_for_status()
 
 
 def schedule_run(args) -> None:
@@ -99,14 +115,14 @@ def schedule_run(args) -> None:
             logger.exception('Failed to parse the manifest as JSON.')
             sys.exit(1)
 
-    def select_tasks(image_name: str, from_failures: str, prefix: str, store: str) -> typing.List[dict]:
+    def select_tasks(image_name: str, from_failures: str, prefix: str) -> typing.List[dict]:
         candidates = get_tasks_from_image(image_name)
 
         if prefix:
             candidates = [each for each in candidates if each['path'].startswith(prefix)]
 
         if from_failures:
-            all_tasks = requests.get(f'{get_store_uri(store)}/run/{from_failures}/tasks').json()
+            all_tasks = requests.get(f'{get_store_uri()}/run/{from_failures}/tasks').json()
             failed_test_paths = set([task['settings']['path'] for task in all_tasks if task['result'] != 'Passed'])
             candidates = [each for each in candidates if each['path'] in failed_test_paths]
 
@@ -155,7 +171,8 @@ def schedule_run(args) -> None:
         environment_variables = [
             {'name': 'ENV_POD_NAME', 'valueFrom': {'fieldRef': {'fieldPath': 'metadata.name'}}},
             {'name': 'ENV_NODE_NAME', 'valueFrom': {'fieldRef': {'fieldPath': 'spec.nodeName'}}},
-            {'name': 'A01_DROID_RUN_ID', 'value': str(run_id)}
+            {'name': 'A01_DROID_RUN_ID', 'value': str(run_id)},
+            {'name': 'A01_STORE_NAME', 'value': 'task-store-web-service'}
         ]
         if live:
             environment_variables.append({'name': 'A01_RUN_LIVE', 'value': 'True'})
@@ -189,6 +206,9 @@ def schedule_run(args) -> None:
                             ],
                             'env': environment_variables
                         }],
+                        'imagePullSecrets': [
+                            {'name': 'azureclidev-acr'}
+                        ],
                         'restartPolicy': 'Never',
                         'volumes': [{
                             'name': 'azure-storage',
@@ -215,12 +235,12 @@ def schedule_run(args) -> None:
 
         return config['metadata']['name']
 
-    selected_tasks = select_tasks(args.image, args.from_failures, args.path_prefix, args.store)
+    selected_tasks = select_tasks(args.image, args.from_failures, args.path_prefix)
 
     run_name = post_tasks(selected_tasks,
-                          post_run(get_store_uri(args.store), args.image),
+                          post_run(get_store_uri(), args.image),
                           args.image,
-                          get_store_uri(args.store)) if not args.dry_run else 'example_run'
+                          get_store_uri()) if not args.dry_run else 'example_run'
 
     job_config = config_job(args.parallelism, args.image, run_name, args.live, args.storage_secret, args.sp_secret)
 
@@ -236,8 +256,16 @@ def schedule_run(args) -> None:
     print(json.dumps({'run': run_name, 'job': job_name}))
 
 
+def list_runs(_):
+    resp = requests.get(f'{get_store_uri()}/runs')
+    resp.raise_for_status()
+    view = [(run['id'], run['name'], run['creation']) for run in resp.json()]
+    print()
+    print(tabulate.tabulate(view, headers=('id', 'name', 'creation')))
+
+
 def list_run(args):
-    resp = requests.get(f'{get_store_uri(args.store)}/run/{args.id}/tasks')
+    resp = requests.get(f'{get_store_uri()}/run/{args.id}/tasks')
     resp.raise_for_status()
     tasks = resp.json()
 
@@ -275,7 +303,7 @@ def list_run(args):
 
 def show_task(args):
     for task_id in args.id:
-        resp = requests.get(f'{get_store_uri(args.store)}/task/{task_id}')
+        resp = requests.get(f'{get_store_uri()}/task/{task_id}')
         resp.raise_for_status()
         task = resp.json()
         view = [
