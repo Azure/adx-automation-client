@@ -12,8 +12,8 @@ deploy:
     secure: EZWCWrJn13k5uXQSnF1pvYcBoB61AWLgm2qj0j10NmAwBZ3+Wq1ukrWo25chJAl3JErQ8FbI+yKhKfMd8WtDVjWRHdATcbWebpifpSaRuDKJvy9VvhZCgtG2xDbjAhzvUGhvjSgFEP4ycCVxIJzypTqIKeMPR3UZi5savw5ssTJ2c+4mqJTEdmBD0LbCd+kD/dG1CdjHrB9/WMxfVivAPCsWQIetw0xQhRMInQAXZ2oVGGOUYHP9kwZ9SYWVLqbCza6B65H55LQ2Y/W2Joj9tF/dI5vcIz3PyaGXEJyneQCIGxdDel8bIwzfYATypqrp+orwwRf/EQROLANp1GMrog9MDHw0QiQQgMfyW+R6aDpmSpJ+URCi8ipezmQ0YGaLvCaTT7KLnqUBS2r/KbMilVOd8Vxmpnhm7C74aHq4xAxASnWj8Q0uxk3KHYXuIF3BclK3UqxixP5b9ry1NREBgTPBOeQV1yPtUJ1U7F+zQcVWtB7WJxS+eWFqEnG0glZbz9HnrmEpkFg9mc2YN50mXDpCXrASLLZ7vPBIQSqfABHY2TymJcG5xa7AusELTPMPy05TKGl+xiHVqT+8qzNrZ5oMxlqmdfYpgyaClM9MqDkVkOApKqA3FhXxawGuJIYgUlJzrY5LU22wn8sGfJrbl4RnjpGrwIxq+NF8AWcg3+A=
   file_glob: true
   file: dist/*
+  skip_cleanup: true
   on:
     repo: troydai/a01client
     branch: master
-    tags: true
 
