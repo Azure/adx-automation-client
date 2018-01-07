@@ -16,4 +16,5 @@ deploy:
   on:
     repo: troydai/a01client
     branch: master
+    tags: true
 
