@@ -1,12 +1,12 @@
 import argparse
 import inspect
-from typing import Callable, Collection, Set
+from typing import Callable, Collection
 
 from a01.common import get_logger
 
-logger = get_logger(__name__)
+logger = get_logger(__name__)  # pylint: disable=invalid-name
 
-command_table = dict()
+COMMAND_TABLE = dict()
 
 
 def cmd(name: str, desc: str = None):
@@ -17,7 +17,7 @@ def cmd(name: str, desc: str = None):
             raise SyntaxError(f'Duplicate @cmd decorator on {func}')
 
         command_definition = CommandDefinition(name, func, desc)
-        command_table[name] = command_definition
+        COMMAND_TABLE[name] = command_definition
 
         argument_definitions = getattr(func, '__argument_definitions', None)
         if argument_definitions:
@@ -25,7 +25,7 @@ def cmd(name: str, desc: str = None):
                 command_definition.add_argument(each)
             delattr(func, '__argument_definitions')
 
-        setattr(func, '__command_definition', command_table[name])
+        setattr(func, '__command_definition', COMMAND_TABLE[name])
 
         return func
 
@@ -57,7 +57,7 @@ def setup_commands() -> argparse.ArgumentParser:
     parser.set_defaults(func=lambda _: parser.print_help())
     root = CommandNode(parser=parser)
 
-    for name, definition in command_table.items():
+    for name, definition in COMMAND_TABLE.items():
         logger.info(f'add [{name}] to command tree')
         node = root
         for part in name.split(' '):
@@ -70,7 +70,7 @@ def setup_commands() -> argparse.ArgumentParser:
     return parser
 
 
-class ArgumentDefinition(object):
+class ArgumentDefinition(object):  # pylint: disable=too-few-public-methods
     def __init__(self, dest: str, positional: bool = False, option: Collection[str] = None, **kwargs) -> None:
         self.dest = dest
         self.positional = positional
@@ -98,7 +98,7 @@ class ArgumentDefinition(object):
                     kwargs['type'] = bool
                 else:
                     kwargs['action'] = 'store_false' if parameter_def.default else 'store_true'
-            elif type(annotation) == list:
+            elif type(annotation) == list:  # pylint: disable=unidiomatic-typecheck
                 kwargs['nargs'] = '+' if self.positional else '*'
             else:
                 logger.warning(f'@arg: Unknown annotation type {annotation} on {self.dest}')
@@ -194,5 +194,4 @@ class CommandNode(object):
     def __repr__(self) -> str:
         if self.parent:
             return f'{self.parent.__repr__()} -> {self.name}'
-        else:
-            return 'root'
+        return 'root'

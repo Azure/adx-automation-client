@@ -19,7 +19,7 @@ from a01.common import get_store_uri, get_logger
 from a01.tasks import get_task
 from a01.cli import cmd, arg
 
-logger = get_logger(__name__)
+logger = get_logger(__name__)  # pylint: disable=invalid-name
 
 
 @cmd('get runs', desc='Retrieve the runs.')
@@ -74,7 +74,6 @@ def get_run(run_id: str, log: bool = False) -> None:
         print()
         print('Task details:')
         print()
-        # TODO: refectory, this is a bad pattern
         get_task(argparse.Namespace(id=[f[0] for f in failure], log=True, run=id))
 
 
@@ -90,7 +89,8 @@ def get_run(run_id: str, log: bool = False) -> None:
      help='The kubernete secret represents the service principal for live test.')
 @arg('storage_secret', option=('--storage', '--log-storage-secret'),
      help='The kubernete secret represents the Azure Storage Account credential for logging')
-def schedule_run(image: str, path_prefix: str = None, from_failures: str = None, dry_run: bool = False,
+def schedule_run(image: str,  # pylint: disable=too-many-arguments
+                 path_prefix: str = None, from_failures: str = None, dry_run: bool = False,
                  live: bool = False, parallelism: int = 3, sp_secret: str = 'azurecli-live-sp',
                  storage_secret: str = 'azurecli-test-storage') -> None:
     @functools.lru_cache(maxsize=1)
@@ -158,8 +158,8 @@ def schedule_run(image: str, path_prefix: str = None, from_failures: str = None,
             sys.exit(1)
         return run_id
 
-    def config_job(parallelism: int, image_name: str, run_id: str, live: bool, storage_secret: str,
-                   sp_secret: str) -> dict:
+    def config_job(parallelism: int,  # pylint: disable=too-many-arguments
+                   image_name: str, run_id: str, live: bool, storage_secret: str, sp_secret: str) -> dict:
         job = f'azurecli-test-{base64.b32encode(os.urandom(12)).decode("utf-8").lower()}'.rstrip('=')
 
         environment_variables = [
@@ -217,8 +217,8 @@ def schedule_run(image: str, path_prefix: str = None, from_failures: str = None,
 
     def post_job(config: dict) -> str:
         _, config_file = tempfile.mkstemp(text=True)
-        with open(config_file, 'w') as f:
-            yaml.dump(config, f, default_flow_style=False)
+        with open(config_file, 'w') as config_file_handle:
+            yaml.dump(config, config_file_handle, default_flow_style=False)
         logger.info(f'Temp config file saved at {config_file}')
 
         try:
