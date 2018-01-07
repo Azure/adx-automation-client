@@ -2,9 +2,7 @@ import requests
 import tabulate
 
 import a01.cli
-from a01.common import get_logger, get_store_uri, LOG_FILE
-
-logger = get_logger(__name__)
+from a01.common import get_store_uri, LOG_FILE
 
 
 @a01.cli.cmd(name='get task', desc='Retrieve tasks information.')
