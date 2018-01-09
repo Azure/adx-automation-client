@@ -100,8 +100,13 @@ class ArgumentDefinition(object):  # pylint: disable=too-few-public-methods
                     kwargs['action'] = 'store_false' if parameter_def.default else 'store_true'
             elif type(annotation) == list:  # pylint: disable=unidiomatic-typecheck
                 kwargs['nargs'] = '+' if self.positional else '*'
+            elif annotation is int:
+                kwargs['type'] = int
             else:
                 logger.warning(f'@arg: Unknown annotation type {annotation} on {self.dest}')
+
+        if parameter_def.default:
+            kwargs['default'] = parameter_def.default
 
         for key, value in self.kwargs.items():
             kwargs[key] = value

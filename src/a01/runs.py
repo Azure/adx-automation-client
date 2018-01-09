@@ -79,8 +79,8 @@ def get_run(run_id: str, log: bool = False) -> None:
 
 @cmd('create run', desc='Create a new run.')
 @arg('image', help='The droid image to run.', positional=True)
-@arg('parallelism', help='The number of job to run in parallel. Can be scaled later through kubectl.',
-     option=('-p', '--parallelism'))
+@arg('parallelism', option=('-p', '--parallelism'),
+     help='The number of job to run in parallel. Can be scaled later through kubectl.')
 @arg('dry_run', help='List the tasks instead of actually schedule a run.', action='store_true')
 @arg('from_failures', help='Create the run base on the failed tasks of another run')
 @arg('path_prefix', help='Filter the task base on the test path prefix')
