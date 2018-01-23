@@ -74,7 +74,7 @@ def get_run(run_id: str, log: bool = False) -> None:
         print()
         print('Task details:')
         print()
-        get_task(argparse.Namespace(id=[f[0] for f in failure], log=True, run=id))
+        get_task(ids=[f[0] for f in failure], log=True)
 
 
 @cmd('create run', desc='Create a new run.')
