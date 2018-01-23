@@ -17,7 +17,8 @@ DEPENDENCIES = [
     'tabulate>=0.8.2',
     'requests>=2.18.4',
     'PyYAML>=3.12',
-    'coloredlogs>=8.0'
+    'coloredlogs>=8.0',
+    'colorama>=0.3.9'
 ]
 
 setup(
