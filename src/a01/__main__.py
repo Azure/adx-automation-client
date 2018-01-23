@@ -3,6 +3,7 @@ def main() -> None:
 
     __import__('a01.runs')
     __import__('a01.tasks')
+    __import__('a01.config')
     parser = setup_commands()
 
     args = parser.parse_args()
