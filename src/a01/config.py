@@ -16,6 +16,10 @@ def check_environment():
     result = True
     result &= verify_item('Azure CLI', 'az --version')
     result &= verify_item('Azure CLI login', 'az account show')
+    result &= verify_item('Azure Container Registry login', 'az acr login -n azureclidev',
+                          'The current az account must allow you to login container registry azureclidev.')
+    result &= verify_item('Azure Container Service login', 'az aks get-credentials -n az-devex -g az-devex-kube',
+                          'The current az account must allow you to login container service az-devex.')
     result &= verify_item('Kubernete CLI', 'kubectl version', 'Install kubectl using "az aks install-cli" command.')
     result &= verify_item('Kubernete namespace az', 'kubectl get namespace az',
                           'The cluster must have a namespace named az associated. You may not have log in your '

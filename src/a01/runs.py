@@ -1,4 +1,3 @@
-import argparse
 import datetime
 import base64
 import functools
@@ -8,6 +7,7 @@ import sys
 import os
 import typing
 import tempfile
+import re
 from collections import defaultdict
 from subprocess import check_output, CalledProcessError
 
@@ -81,7 +81,8 @@ def get_run(run_id: str, log: bool = False) -> None:
 @arg('image', help='The droid image to run.', positional=True)
 @arg('parallelism', option=('-p', '--parallelism'),
      help='The number of job to run in parallel. Can be scaled later through kubectl.')
-@arg('dry_run', help='List the tasks instead of actually schedule a run.', action='store_true')
+@arg('dry_run', option=('--dryrun', '--dry-run'), help='List the tasks instead of actually schedule a run.',
+     action='store_true')
 @arg('from_failures', help='Create the run base on the failed tasks of another run')
 @arg('path_prefix', help='Filter the task base on the test path prefix')
 @arg('live', help='Run test live')
@@ -89,10 +90,12 @@ def get_run(run_id: str, log: bool = False) -> None:
      help='The kubernete secret represents the service principal for live test.')
 @arg('storage_secret', option=('--storage', '--log-storage-secret'),
      help='The kubernete secret represents the Azure Storage Account credential for logging')
+@arg('query', help='The regular expression used to query the tests.')
 def schedule_run(image: str,  # pylint: disable=too-many-arguments
                  path_prefix: str = None, from_failures: str = None, dry_run: bool = False,
                  live: bool = False, parallelism: int = 3, sp_secret: str = 'azurecli-live-sp',
-                 storage_secret: str = 'azurecli-test-storage') -> None:
+                 storage_secret: str = 'azurecli-test-storage',
+                 query: str = None) -> None:
     @functools.lru_cache(maxsize=1)
     def get_tasks_from_image(image_name: str) -> typing.List[dict]:
         temp_container_name = base64.b32encode(os.urandom(12))[:-4]
@@ -101,7 +104,11 @@ def schedule_run(image: str,  # pylint: disable=too-many-arguments
         try:
             output = check_output(shlex.split(run_cmd))
             check_output(shlex.split(rm_cmd))
-            return json.loads(output)
+            tests = json.loads(output)
+            if query:
+                tests = [t for t in tests if re.match(query, t['path'])]
+
+            return tests
         except CalledProcessError:
             logger.exception(f'Failed to list tests in image {image_name}.')
             sys.exit(1)
@@ -222,7 +229,7 @@ def schedule_run(image: str,  # pylint: disable=too-many-arguments
         logger.info(f'Temp config file saved at {config_file}')
 
         try:
-            check_output(shlex.split(f'kubectl create -f {config_file}'))
+            check_output(shlex.split(f'kubectl create -f {config_file} --namespace az'))
         except CalledProcessError:
             logger.exception(f'Failed to create job.')
             sys.exit(1)
