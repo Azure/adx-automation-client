@@ -24,7 +24,7 @@ def get_logger(name: str) -> logging.Logger:
 
 @functools.lru_cache(maxsize=4)
 def get_store_uri() -> str:
-    cmd = f'kubectl get service {KUBE_STORE_NAME}' + ' -ojsonpath={.status.loadBalancer.ingress[0].ip}'
+    cmd = f'kubectl get service {KUBE_STORE_NAME} --namespace az' + ' -ojsonpath={.status.loadBalancer.ingress[0].ip}'
     try:
         store_ip = check_output(shlex.split(cmd)).decode('utf-8')
         return f'http://{store_ip}'
