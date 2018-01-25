@@ -11,3 +11,5 @@ build/
 # just in case
 secret.yaml
 
+# user data
+recording/

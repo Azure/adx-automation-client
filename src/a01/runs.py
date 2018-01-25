@@ -15,7 +15,7 @@ import requests
 import tabulate
 import yaml
 
-from a01.common import get_store_uri, get_logger
+from a01.common import get_store_uri, get_logger, download_recording
 from a01.tasks import get_task
 from a01.cli import cmd, arg
 
@@ -34,7 +34,14 @@ def get_runs() -> None:
 @cmd('get run', desc='Retrieve a run')
 @arg('run_id', help='The run id.', positional=True)
 @arg('log', help="Include the failed tasks' logs.", option=('-l', '--log'))
-def get_run(run_id: str, log: bool = False) -> None:
+@arg('recording', option=('-r', '--recording'),
+     help='Download the recording files in recording directory at current working directory. The recordings '
+          'are flatten with the full test path as the file name if --az-mode is not specified. If --az-mode is '
+          'set, the recording files are arranged in directory structure mimic Azure CLI source code.')
+@arg('recording_az_mode', option=['--az-mode'],
+     help='When download the recording files the files are arranged in directory structure mimic Azure CLI '
+          'source code.')
+def get_run(run_id: str, log: bool = False, recording: bool = False, recording_az_mode: bool = False) -> None:
     resp = requests.get(f'{get_store_uri()}/run/{run_id}/tasks')
     resp.raise_for_status()
     tasks = resp.json()
@@ -75,6 +82,12 @@ def get_run(run_id: str, log: bool = False) -> None:
         print('Task details:')
         print()
         get_task(ids=[f[0] for f in failure], log=True)
+
+    if recording:
+        print()
+        print('Download recordings ...')
+        for task in tasks:
+            download_recording(task, recording_az_mode)
 
 
 @cmd('create run', desc='Create a new run.')
