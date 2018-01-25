@@ -30,7 +30,7 @@ def check_environment():
     cmd = f'kubectl get service {KUBE_STORE_NAME} --namespace az' + ' -ojsonpath={.status.loadBalancer.ingress[0].ip}'
     result &= verify_item('Kubernete service', cmd,
                           'There must be service named "task-store-web-service" exposed in the az namespace.',
-                          check_task_store_healthy)
+                          _check_task_store_healthy)
 
     sys.exit(0 if result else 1)
 
@@ -56,8 +56,8 @@ def verify_item(name: str, command: str, hint: str = None, validate_fn: Callable
         return False
 
 
-def check_task_store_healthy(ip: str) -> None:
-    resp = requests.get(f'http://{ip}/healthy')
+def _check_task_store_healthy(store_ip: str) -> None:
+    resp = requests.get(f'http://{store_ip}/healthy')
     resp.raise_for_status()
     if json.loads(resp.content.decode('utf-8'))['status'] != 'healthy':
         raise ValueError()
