@@ -16,6 +16,8 @@ def check_environment():
     result = True
     result &= verify_item('Azure CLI', 'az --version')
     result &= verify_item('Azure CLI login', 'az account show')
+    result &= verify_item('Azure CLI subscription', 'az account set -s 6b085460-5f21-477e-ba44-1035046e9101',
+                          'The current az login failed to sign in 6b085460-5f21-477e-ba44-1035046e9101 subscription')
     result &= verify_item('Azure Container Registry login', 'az acr login -n azureclidev',
                           'The current az account must allow you to login container registry azureclidev.')
     result &= verify_item('Azure Container Service login', 'az aks get-credentials -n az-devex -g az-devex-kube',

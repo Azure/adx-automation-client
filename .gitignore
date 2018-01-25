@@ -106,3 +106,6 @@ ENV/
 
 # Kubernetes
 secret.yaml
+
+# User data
+recording/

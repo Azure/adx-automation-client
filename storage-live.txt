@@ -1,0 +1,428 @@
+
+Time    2018-01-23 10:17:44.215093
+Task    completed: 74 | scheduled: 1
+Result  Passed: 69 | Failed: 5 | Not run: 1
+
+  id  name                                                status     result    agent      duration(ms)
+----  --------------------------------------------------  ---------  --------  -------  --------------
+9306  test_metrics_operations                             completed  Failed                      44672
+9311  test_update_storage_account_with_assigned_identity  completed  Failed                      30644
+9343  test_storage_blob_upload_small_file                 completed  Failed                      28867
+9342  test_storage_blob_upload_midsize_file               completed  Failed                      47088
+9349  test_storage_file_copy_non_ascii                    completed  Failed                      24956
+
+Task details:
+
+id            9306
+result        Failed
+test          azure.cli.command_modules.storage.tests.latest.test_storage_account_scenarios.StorageAccountTests.test_metrics_operations
+duration(ms)  44672
+
+ 0	/usr/local/lib/python3.6/site-packages/azure_devtools/scenario_tests/preparers.py:54: DeprecationWarning: inspect.getargspec() is deprecated, use inspect.signature() or inspect.getfullargspec()
+ 1	  args, _, kw, _ = inspect.getargspec(fn)  # pylint: disable=deprecated-method
+ 2	/usr/local/lib/python3.6/site-packages/vcr/patch.py:353: ResourceWarning: unclosed <socket.socket fd=5, family=AddressFamily.AF_INET, type=2049, proto=6, laddr=('10.244.2.83', 49134), raddr=('52.183.66.247', 443)>
+ 3	  connection = pool.pool.get()
+ 4	/usr/local/lib/python3.6/site-packages/vcr/patch.py:353: ResourceWarning: unclosed <socket.socket fd=6, family=AddressFamily.AF_INET, type=2049, proto=6, laddr=('10.244.2.83', 49154), raddr=('52.183.66.247', 443)>
+ 5	  connection = pool.pool.get()
+ 6	/usr/local/lib/python3.6/site-packages/vcr/patch.py:353: ResourceWarning: unclosed <socket.socket fd=7, family=AddressFamily.AF_INET, type=2049, proto=6, laddr=('10.244.2.83', 49238), raddr=('52.183.66.247', 443)>
+ 7	  connection = pool.pool.get()
+ 8	/usr/local/lib/python3.6/site-packages/vcr/patch.py:353: ResourceWarning: unclosed <socket.socket fd=8, family=AddressFamily.AF_INET, type=2049, proto=6, laddr=('10.244.2.83', 49314), raddr=('52.183.66.247', 443)>
+ 9	  connection = pool.pool.get()
+ 10	/usr/local/lib/python3.6/site-packages/vcr/patch.py:353: ResourceWarning: unclosed <socket.socket fd=9, family=AddressFamily.AF_INET, type=2049, proto=6, laddr=('10.244.2.83', 49318), raddr=('52.183.66.247', 443)>
+ 11	  connection = pool.pool.get()
+ 12	/usr/local/lib/python3.6/site-packages/vcr/patch.py:353: ResourceWarning: unclosed <socket.socket fd=10, family=AddressFamily.AF_INET, type=2049, proto=6, laddr=('10.244.2.83', 53460), raddr=('52.239.162.164', 443)>
+ 13	  connection = pool.pool.get()
+ 14	/usr/local/lib/python3.6/site-packages/vcr/patch.py:353: ResourceWarning: unclosed <socket.socket fd=11, family=AddressFamily.AF_INET, type=2049, proto=6, laddr=('10.244.2.83', 44344), raddr=('52.239.162.166', 443)>
+ 15	  connection = pool.pool.get()
+ 16	/usr/local/lib/python3.6/site-packages/vcr/patch.py:353: ResourceWarning: unclosed <socket.socket fd=12, family=AddressFamily.AF_INET, type=2049, proto=6, laddr=('10.244.2.83', 51302), raddr=('52.239.162.168', 443)>
+ 17	  connection = pool.pool.get()
+ 18	/usr/local/lib/python3.6/site-packages/vcr/patch.py:353: ResourceWarning: unclosed <socket.socket fd=13, family=AddressFamily.AF_INET, type=2049, proto=6, laddr=('10.244.2.83', 55184), raddr=('52.239.162.165', 443)>
+ 19	  connection = pool.pool.get()
+ 20	/usr/local/lib/python3.6/contextlib.py:284: ResourceWarning: unclosed <socket.socket fd=14, family=AddressFamily.AF_INET, type=2049, proto=6, laddr=('10.244.2.83', 49342), raddr=('52.183.66.247', 443)>
+ 21	  return cm_exit(cm, *exc_details)
+ 22	F
+ 23	======================================================================
+ 24	FAIL: test_metrics_operations (azure.cli.command_modules.storage.tests.latest.test_storage_account_scenarios.StorageAccountTests)
+ 25	----------------------------------------------------------------------
+ 26	Traceback (most recent call last):
+ 27	  File "/usr/local/lib/python3.6/site-packages/azure_devtools/scenario_tests/preparers.py", line 60, in _preparer_wrapper
+ 28	    fn(test_class_instance, **kwargs)
+ 29	  File "/usr/local/lib/python3.6/site-packages/azure_devtools/scenario_tests/preparers.py", line 60, in _preparer_wrapper
+ 30	    fn(test_class_instance, **kwargs)
+ 31	  File "/usr/local/lib/python3.6/site-packages/azure/cli/command_modules/storage/tests/latest/test_storage_account_scenarios.py", line 174, in test_metrics_operations
+ 32	    JMESPathCheck('file.minute.enabled', False))
+ 33	  File "/usr/local/lib/python3.6/site-packages/azure/cli/testsdk/base.py", line 201, in assert_with_checks
+ 34	    c(self)
+ 35	  File "/usr/local/lib/python3.6/site-packages/azure/cli/testsdk/checkers.py", line 27, in __call__
+ 36	    execution_result.output)
+ 37	azure.cli.testsdk.exceptions.JMESPathCheckAssertionError: Query 'file.hour.enabled' doesn't yield expected value 'True', instead the actual value is 'None'. Data: 
+ 38	{
+ 39	  "blob": {
+ 40	    "hour": {
+ 41	      "enabled": false,
+ 42	      "includeApis": null,
+ 43	      "retentionPolicy": {
+ 44	        "days": null,
+ 45	        "enabled": false
+ 46	      },
+ 47	      "version": "1.0"
+ 48	    },
+ 49	    "minute": {
+ 50	      "enabled": false,
+ 51	      "includeApis": null,
+ 52	      "retentionPolicy": {
+ 53	        "days": null,
+ 54	        "enabled": false
+ 55	      },
+ 56	      "version": "1.0"
+ 57	    }
+ 58	  },
+ 59	  "file": {
+ 60	    "hour": {
+ 61	      "enabled": false,
+ 62	      "includeApis": null,
+ 63	      "retentionPolicy": {
+ 64	        "days": null,
+ 65	        "enabled": false
+ 66	      },
+ 67	      "version": "1.0"
+ 68	    },
+ 69	    "minute": {
+ 70	      "enabled": false,
+ 71	      "includeApis": null,
+ 72	      "retentionPolicy": {
+ 73	        "days": null,
+ 74	        "enabled": false
+ 75	      },
+ 76	      "version": "1.0"
+ 77	    }
+ 78	  },
+ 79	  "queue": {
+ 80	    "hour": {
+ 81	      "enabled": false,
+ 82	      "includeApis": null,
+ 83	      "retentionPolicy": {
+ 84	        "days": null,
+ 85	        "enabled": false
+ 86	      },
+ 87	      "version": "1.0"
+ 88	    },
+ 89	    "minute": {
+ 90	      "enabled": false,
+ 91	      "includeApis": null,
+ 92	      "retentionPolicy": {
+ 93	        "days": null,
+ 94	        "enabled": false
+ 95	      },
+ 96	      "version": "1.0"
+ 97	    }
+ 98	  },
+ 99	  "table": {
+ 100	    "hour": {
+ 101	      "enabled": false,
+ 102	      "includeApis": null,
+ 103	      "retentionPolicy": {
+ 104	        "days": null,
+ 105	        "enabled": false
+ 106	      },
+ 107	      "version": "1.0"
+ 108	    },
+ 109	    "minute": {
+ 110	      "enabled": false,
+ 111	      "includeApis": null,
+ 112	      "retentionPolicy": {
+ 113	        "days": null,
+ 114	        "enabled": false
+ 115	      },
+ 116	      "version": "1.0"
+ 117	    }
+ 118	  }
+ 119	}
+ 120	
+ 121	
+ 122	
+ 123	----------------------------------------------------------------------
+ 124	Ran 1 test in 44.004s
+ 125	
+ 126	FAILED (failures=1)
+ 127	
+
+
+id            9311
+result        Failed
+test          azure.cli.command_modules.storage.tests.latest.test_storage_account_scenarios.StorageAccountTests.test_update_storage_account_with_assigned_identity
+duration(ms)  30644
+
+ 0	/usr/local/lib/python3.6/site-packages/azure_devtools/scenario_tests/preparers.py:54: DeprecationWarning: inspect.getargspec() is deprecated, use inspect.signature() or inspect.getfullargspec()
+ 1	  args, _, kw, _ = inspect.getargspec(fn)  # pylint: disable=deprecated-method
+ 2	/usr/local/lib/python3.6/site-packages/vcr/patch.py:353: ResourceWarning: unclosed <socket.socket fd=5, family=AddressFamily.AF_INET, type=2049, proto=6, laddr=('10.244.2.82', 34402), raddr=('52.183.66.247', 443)>
+ 3	  connection = pool.pool.get()
+ 4	/usr/local/lib/python3.6/site-packages/vcr/patch.py:353: ResourceWarning: unclosed <socket.socket fd=6, family=AddressFamily.AF_INET, type=2049, proto=6, laddr=('10.244.2.82', 34418), raddr=('52.183.66.247', 443)>
+ 5	  connection = pool.pool.get()
+ 6	/usr/local/lib/python3.6/site-packages/vcr/patch.py:353: ResourceWarning: unclosed <socket.socket fd=7, family=AddressFamily.AF_INET, type=2049, proto=6, laddr=('10.244.2.82', 34422), raddr=('52.183.66.247', 443)>
+ 7	  connection = pool.pool.get()
+ 8	/usr/local/lib/python3.6/site-packages/vcr/patch.py:353: ResourceWarning: unclosed <socket.socket fd=8, family=AddressFamily.AF_INET, type=2049, proto=6, laddr=('10.244.2.82', 34518), raddr=('52.183.66.247', 443)>
+ 9	  connection = pool.pool.get()
+ 10	/usr/local/lib/python3.6/site-packages/vcr/patch.py:353: ResourceWarning: unclosed <socket.socket fd=9, family=AddressFamily.AF_INET, type=2049, proto=6, laddr=('10.244.2.82', 34534), raddr=('52.183.66.247', 443)>
+ 11	  connection = pool.pool.get()
+ 12	/usr/local/lib/python3.6/site-packages/vcr/patch.py:353: ResourceWarning: unclosed <socket.socket fd=10, family=AddressFamily.AF_INET, type=2049, proto=6, laddr=('10.244.2.82', 34548), raddr=('52.183.66.247', 443)>
+ 13	  connection = pool.pool.get()
+ 14	/usr/local/lib/python3.6/contextlib.py:284: ResourceWarning: unclosed <socket.socket fd=11, family=AddressFamily.AF_INET, type=2049, proto=6, laddr=('10.244.2.82', 34564), raddr=('52.183.66.247', 443)>
+ 15	  return cm_exit(cm, *exc_details)
+ 16	F
+ 17	======================================================================
+ 18	FAIL: test_update_storage_account_with_assigned_identity (azure.cli.command_modules.storage.tests.latest.test_storage_account_scenarios.StorageAccountTests)
+ 19	----------------------------------------------------------------------
+ 20	Traceback (most recent call last):
+ 21	  File "/usr/local/lib/python3.6/site-packages/azure_devtools/scenario_tests/preparers.py", line 60, in _preparer_wrapper
+ 22	    fn(test_class_instance, **kwargs)
+ 23	  File "/usr/local/lib/python3.6/site-packages/azure/cli/command_modules/storage/tests/latest/test_storage_account_scenarios.py", line 75, in test_update_storage_account_with_assigned_identity
+ 24	    self.assertTrue(result['identity']['principalId'])
+ 25	AssertionError: None is not true
+ 26	
+ 27	----------------------------------------------------------------------
+ 28	Ran 1 test in 30.000s
+ 29	
+ 30	FAILED (failures=1)
+ 31	
+
+
+id            9343
+result        Failed
+test          azure.cli.command_modules.storage.tests.latest.test_storage_blob_scenarios.StorageBlobUploadTests.test_storage_blob_upload_small_file
+duration(ms)  28867
+
+ 0	/usr/local/lib/python3.6/site-packages/azure_devtools/scenario_tests/preparers.py:54: DeprecationWarning: inspect.getargspec() is deprecated, use inspect.signature() or inspect.getfullargspec()
+ 1	  args, _, kw, _ = inspect.getargspec(fn)  # pylint: disable=deprecated-method
+ 2	Alive[################################################################]  100.0000%Finished[#############################################################]  100.0000%
+ 3	/usr/local/lib/python3.6/site-packages/vcr/patch.py:353: ResourceWarning: unclosed <socket.socket fd=5, family=AddressFamily.AF_INET, type=2049, proto=6, laddr=('10.244.2.83', 53416), raddr=('52.183.66.247', 443)>
+ 4	  connection = pool.pool.get()
+ 5	/usr/local/lib/python3.6/site-packages/vcr/patch.py:353: ResourceWarning: unclosed <socket.socket fd=6, family=AddressFamily.AF_INET, type=2049, proto=6, laddr=('10.244.2.83', 53428), raddr=('52.183.66.247', 443)>
+ 6	  connection = pool.pool.get()
+ 7	/usr/local/lib/python3.6/site-packages/vcr/patch.py:353: ResourceWarning: unclosed <socket.socket fd=7, family=AddressFamily.AF_INET, type=2049, proto=6, laddr=('10.244.2.83', 53480), raddr=('52.183.66.247', 443)>
+ 8	  connection = pool.pool.get()
+ 9	/usr/local/lib/python3.6/site-packages/vcr/patch.py:353: ResourceWarning: unclosed <socket.socket fd=8, family=AddressFamily.AF_INET, type=2049, proto=6, laddr=('10.244.2.83', 53484), raddr=('52.183.66.247', 443)>
+ 10	  connection = pool.pool.get()
+ 11	/usr/local/lib/python3.6/site-packages/vcr/patch.py:353: ResourceWarning: unclosed <socket.socket fd=9, family=AddressFamily.AF_INET, type=2049, proto=6, laddr=('10.244.2.83', 53496), raddr=('52.183.66.247', 443)>
+ 12	  connection = pool.pool.get()
+ 13	/usr/local/lib/python3.6/site-packages/vcr/patch.py:353: ResourceWarning: unclosed <socket.socket fd=10, family=AddressFamily.AF_INET, type=2049, proto=6, laddr=('10.244.2.83', 37014), raddr=('40.78.112.64', 443)>
+ 14	  connection = pool.pool.get()
+ 15	/usr/local/lib/python3.6/site-packages/vcr/patch.py:353: ResourceWarning: unclosed <socket.socket fd=11, family=AddressFamily.AF_INET, type=2049, proto=6, laddr=('10.244.2.83', 37016), raddr=('40.78.112.64', 443)>
+ 16	  connection = pool.pool.get()
+ 17	/usr/local/lib/python3.6/site-packages/vcr/patch.py:353: ResourceWarning: unclosed <socket.socket fd=13, family=AddressFamily.AF_INET, type=2049, proto=6, laddr=('10.244.2.83', 37018), raddr=('40.78.112.64', 443)>
+ 18	  connection = pool.pool.get()
+ 19	/usr/local/lib/python3.6/site-packages/vcr/patch.py:353: ResourceWarning: unclosed <socket.socket fd=12, family=AddressFamily.AF_INET, type=2049, proto=6, laddr=('10.244.2.83', 37020), raddr=('40.78.112.64', 443)>
+ 20	  connection = pool.pool.get()
+ 21	/usr/local/lib/python3.6/site-packages/vcr/patch.py:353: ResourceWarning: unclosed <socket.socket fd=14, family=AddressFamily.AF_INET, type=2049, proto=6, laddr=('10.244.2.83', 37022), raddr=('40.78.112.64', 443)>
+ 22	  connection = pool.pool.get()
+ 23	/usr/local/lib/python3.6/site-packages/vcr/patch.py:353: ResourceWarning: unclosed <socket.socket fd=15, family=AddressFamily.AF_INET, type=2049, proto=6, laddr=('10.244.2.83', 37024), raddr=('40.78.112.64', 443)>
+ 24	  connection = pool.pool.get()
+ 25	/usr/local/lib/python3.6/site-packages/vcr/patch.py:353: ResourceWarning: unclosed <socket.socket fd=16, family=AddressFamily.AF_INET, type=2049, proto=6, laddr=('10.244.2.83', 37026), raddr=('40.78.112.64', 443)>
+ 26	  connection = pool.pool.get()
+ 27	/usr/local/lib/python3.6/site-packages/vcr/patch.py:353: ResourceWarning: unclosed <socket.socket fd=17, family=AddressFamily.AF_INET, type=2049, proto=6, laddr=('10.244.2.83', 37028), raddr=('40.78.112.64', 443)>
+ 28	  connection = pool.pool.get()
+ 29	/usr/local/lib/python3.6/site-packages/vcr/patch.py:353: ResourceWarning: unclosed <socket.socket fd=18, family=AddressFamily.AF_INET, type=2049, proto=6, laddr=('10.244.2.83', 37030), raddr=('40.78.112.64', 443)>
+ 30	  connection = pool.pool.get()
+ 31	/usr/local/lib/python3.6/site-packages/vcr/patch.py:353: ResourceWarning: unclosed <socket.socket fd=19, family=AddressFamily.AF_INET, type=2049, proto=6, laddr=('10.244.2.83', 37040), raddr=('40.78.112.64', 443)>
+ 32	  connection = pool.pool.get()
+ 33	/usr/local/lib/python3.6/contextlib.py:284: ResourceWarning: unclosed <socket.socket fd=20, family=AddressFamily.AF_INET, type=2049, proto=6, laddr=('10.244.2.83', 53528), raddr=('52.183.66.247', 443)>
+ 34	  return cm_exit(cm, *exc_details)
+ 35	F
+ 36	======================================================================
+ 37	FAIL: test_storage_blob_upload_small_file (azure.cli.command_modules.storage.tests.latest.test_storage_blob_scenarios.StorageBlobUploadTests)
+ 38	----------------------------------------------------------------------
+ 39	Traceback (most recent call last):
+ 40	  File "/usr/local/lib/python3.6/site-packages/azure_devtools/scenario_tests/preparers.py", line 60, in _preparer_wrapper
+ 41	    fn(test_class_instance, **kwargs)
+ 42	  File "/usr/local/lib/python3.6/site-packages/azure_devtools/scenario_tests/preparers.py", line 60, in _preparer_wrapper
+ 43	    fn(test_class_instance, **kwargs)
+ 44	  File "/usr/local/lib/python3.6/site-packages/azure/cli/command_modules/storage/tests/latest/test_storage_blob_scenarios.py", line 49, in test_storage_blob_upload_small_file
+ 45	    self.verify_blob_upload_and_download(resource_group, storage_account, 1, 'block', 0)
+ 46	  File "/usr/local/lib/python3.6/site-packages/azure/cli/command_modules/storage/tests/latest/test_storage_blob_scenarios.py", line 92, in verify_blob_upload_and_download
+ 47	    .assert_with_checks(JMESPathCheck('hourMetrics.enabled', True))
+ 48	  File "/usr/local/lib/python3.6/site-packages/azure/cli/testsdk/base.py", line 201, in assert_with_checks
+ 49	    c(self)
+ 50	  File "/usr/local/lib/python3.6/site-packages/azure/cli/testsdk/checkers.py", line 27, in __call__
+ 51	    execution_result.output)
+ 52	azure.cli.testsdk.exceptions.JMESPathCheckAssertionError: Query 'hourMetrics.enabled' doesn't yield expected value 'True', instead the actual value is 'None'. Data: 
+ 53	{
+ 54	  "cors": [],
+ 55	  "hourMetrics": {
+ 56	    "enabled": false,
+ 57	    "includeApis": null,
+ 58	    "retentionPolicy": {
+ 59	      "days": null,
+ 60	      "enabled": false
+ 61	    },
+ 62	    "version": "1.0"
+ 63	  },
+ 64	  "logging": {
+ 65	    "delete": false,
+ 66	    "read": false,
+ 67	    "retentionPolicy": {
+ 68	      "days": null,
+ 69	      "enabled": false
+ 70	    },
+ 71	    "version": "1.0",
+ 72	    "write": false
+ 73	  },
+ 74	  "minuteMetrics": {
+ 75	    "enabled": false,
+ 76	    "includeApis": null,
+ 77	    "retentionPolicy": {
+ 78	      "days": null,
+ 79	      "enabled": false
+ 80	    },
+ 81	    "version": "1.0"
+ 82	  }
+ 83	}
+ 84	
+ 85	
+ 86	
+ 87	----------------------------------------------------------------------
+ 88	Ran 1 test in 28.234s
+ 89	
+ 90	FAILED (failures=1)
+ 91	
+
+
+id            9342
+result        Failed
+test          azure.cli.command_modules.storage.tests.latest.test_storage_blob_scenarios.StorageBlobUploadTests.test_storage_blob_upload_midsize_file
+duration(ms)  47088
+
+ 0	/usr/local/lib/python3.6/site-packages/azure_devtools/scenario_tests/preparers.py:54: DeprecationWarning: inspect.getargspec() is deprecated, use inspect.signature() or inspect.getfullargspec()
+ 1	  args, _, kw, _ = inspect.getargspec(fn)  # pylint: disable=deprecated-method
+ 2	Alive[################################################################]  100.0000%Finished[#############################################################]  100.0000%
+ 3	/usr/local/lib/python3.6/site-packages/vcr/patch.py:353: ResourceWarning: unclosed <socket.socket fd=5, family=AddressFamily.AF_INET, type=2049, proto=6, laddr=('10.244.1.19', 48870), raddr=('52.183.66.247', 443)>
+ 4	  connection = pool.pool.get()
+ 5	/usr/local/lib/python3.6/site-packages/vcr/patch.py:353: ResourceWarning: unclosed <socket.socket fd=6, family=AddressFamily.AF_INET, type=2049, proto=6, laddr=('10.244.1.19', 48882), raddr=('52.183.66.247', 443)>
+ 6	  connection = pool.pool.get()
+ 7	/usr/local/lib/python3.6/site-packages/vcr/patch.py:353: ResourceWarning: unclosed <socket.socket fd=7, family=AddressFamily.AF_INET, type=2049, proto=6, laddr=('10.244.1.19', 48962), raddr=('52.183.66.247', 443)>
+ 8	  connection = pool.pool.get()
+ 9	/usr/local/lib/python3.6/site-packages/vcr/patch.py:353: ResourceWarning: unclosed <socket.socket fd=8, family=AddressFamily.AF_INET, type=2049, proto=6, laddr=('10.244.1.19', 49036), raddr=('52.183.66.247', 443)>
+ 10	  connection = pool.pool.get()
+ 11	/usr/local/lib/python3.6/site-packages/vcr/patch.py:353: ResourceWarning: unclosed <socket.socket fd=9, family=AddressFamily.AF_INET, type=2049, proto=6, laddr=('10.244.1.19', 49042), raddr=('52.183.66.247', 443)>
+ 12	  connection = pool.pool.get()
+ 13	/usr/local/lib/python3.6/site-packages/vcr/patch.py:353: ResourceWarning: unclosed <socket.socket fd=10, family=AddressFamily.AF_INET, type=2049, proto=6, laddr=('10.244.1.19', 49054), raddr=('52.183.66.247', 443)>
+ 14	  connection = pool.pool.get()
+ 15	/usr/local/lib/python3.6/site-packages/vcr/patch.py:353: ResourceWarning: unclosed <socket.socket fd=11, family=AddressFamily.AF_INET, type=2049, proto=6, laddr=('10.244.1.19', 41138), raddr=('52.239.161.42', 443)>
+ 16	  connection = pool.pool.get()
+ 17	/usr/local/lib/python3.6/site-packages/vcr/patch.py:353: ResourceWarning: unclosed <socket.socket fd=12, family=AddressFamily.AF_INET, type=2049, proto=6, laddr=('10.244.1.19', 41140), raddr=('52.239.161.42', 443)>
+ 18	  connection = pool.pool.get()
+ 19	/usr/local/lib/python3.6/site-packages/vcr/patch.py:353: ResourceWarning: unclosed <socket.socket fd=14, family=AddressFamily.AF_INET, type=2049, proto=6, laddr=('10.244.1.19', 41142), raddr=('52.239.161.42', 443)>
+ 20	  connection = pool.pool.get()
+ 21	/usr/local/lib/python3.6/site-packages/vcr/patch.py:353: ResourceWarning: unclosed <socket.socket fd=13, family=AddressFamily.AF_INET, type=2049, proto=6, laddr=('10.244.1.19', 41146), raddr=('52.239.161.42', 443)>
+ 22	  connection = pool.pool.get()
+ 23	/usr/local/lib/python3.6/site-packages/vcr/patch.py:353: ResourceWarning: unclosed <socket.socket fd=15, family=AddressFamily.AF_INET, type=2049, proto=6, laddr=('10.244.1.19', 41150), raddr=('52.239.161.42', 443)>
+ 24	  connection = pool.pool.get()
+ 25	/usr/local/lib/python3.6/site-packages/vcr/patch.py:353: ResourceWarning: unclosed <socket.socket fd=16, family=AddressFamily.AF_INET, type=2049, proto=6, laddr=('10.244.1.19', 41152), raddr=('52.239.161.42', 443)>
+ 26	  connection = pool.pool.get()
+ 27	/usr/local/lib/python3.6/site-packages/vcr/patch.py:353: ResourceWarning: unclosed <socket.socket fd=17, family=AddressFamily.AF_INET, type=2049, proto=6, laddr=('10.244.1.19', 41162), raddr=('52.239.161.42', 443)>
+ 28	  connection = pool.pool.get()
+ 29	/usr/local/lib/python3.6/site-packages/vcr/patch.py:353: ResourceWarning: unclosed <socket.socket fd=18, family=AddressFamily.AF_INET, type=2049, proto=6, laddr=('10.244.1.19', 41164), raddr=('52.239.161.42', 443)>
+ 30	  connection = pool.pool.get()
+ 31	/usr/local/lib/python3.6/site-packages/vcr/patch.py:353: ResourceWarning: unclosed <socket.socket fd=19, family=AddressFamily.AF_INET, type=2049, proto=6, laddr=('10.244.1.19', 41166), raddr=('52.239.161.42', 443)>
+ 32	  connection = pool.pool.get()
+ 33	/usr/local/lib/python3.6/site-packages/vcr/patch.py:353: ResourceWarning: unclosed <socket.socket fd=20, family=AddressFamily.AF_INET, type=2049, proto=6, laddr=('10.244.1.19', 41168), raddr=('52.239.161.42', 443)>
+ 34	  connection = pool.pool.get()
+ 35	/usr/local/lib/python3.6/contextlib.py:284: ResourceWarning: unclosed <socket.socket fd=21, family=AddressFamily.AF_INET, type=2049, proto=6, laddr=('10.244.1.19', 49090), raddr=('52.183.66.247', 443)>
+ 36	  return cm_exit(cm, *exc_details)
+ 37	F
+ 38	======================================================================
+ 39	FAIL: test_storage_blob_upload_midsize_file (azure.cli.command_modules.storage.tests.latest.test_storage_blob_scenarios.StorageBlobUploadTests)
+ 40	----------------------------------------------------------------------
+ 41	Traceback (most recent call last):
+ 42	  File "/usr/local/lib/python3.6/site-packages/azure_devtools/scenario_tests/preparers.py", line 60, in _preparer_wrapper
+ 43	    fn(test_class_instance, **kwargs)
+ 44	  File "/usr/local/lib/python3.6/site-packages/azure_devtools/scenario_tests/preparers.py", line 60, in _preparer_wrapper
+ 45	    fn(test_class_instance, **kwargs)
+ 46	  File "/usr/local/lib/python3.6/site-packages/azure/cli/command_modules/storage/tests/latest/test_storage_blob_scenarios.py", line 54, in test_storage_blob_upload_midsize_file
+ 47	    self.verify_blob_upload_and_download(resource_group, storage_account, 4096, 'block', 0)
+ 48	  File "/usr/local/lib/python3.6/site-packages/azure/cli/command_modules/storage/tests/latest/test_storage_blob_scenarios.py", line 92, in verify_blob_upload_and_download
+ 49	    .assert_with_checks(JMESPathCheck('hourMetrics.enabled', True))
+ 50	  File "/usr/local/lib/python3.6/site-packages/azure/cli/testsdk/base.py", line 201, in assert_with_checks
+ 51	    c(self)
+ 52	  File "/usr/local/lib/python3.6/site-packages/azure/cli/testsdk/checkers.py", line 27, in __call__
+ 53	    execution_result.output)
+ 54	azure.cli.testsdk.exceptions.JMESPathCheckAssertionError: Query 'hourMetrics.enabled' doesn't yield expected value 'True', instead the actual value is 'None'. Data: 
+ 55	{
+ 56	  "cors": [],
+ 57	  "hourMetrics": {
+ 58	    "enabled": false,
+ 59	    "includeApis": null,
+ 60	    "retentionPolicy": {
+ 61	      "days": null,
+ 62	      "enabled": false
+ 63	    },
+ 64	    "version": "1.0"
+ 65	  },
+ 66	  "logging": {
+ 67	    "delete": false,
+ 68	    "read": false,
+ 69	    "retentionPolicy": {
+ 70	      "days": null,
+ 71	      "enabled": false
+ 72	    },
+ 73	    "version": "1.0",
+ 74	    "write": false
+ 75	  },
+ 76	  "minuteMetrics": {
+ 77	    "enabled": false,
+ 78	    "includeApis": null,
+ 79	    "retentionPolicy": {
+ 80	      "days": null,
+ 81	      "enabled": false
+ 82	    },
+ 83	    "version": "1.0"
+ 84	  }
+ 85	}
+ 86	
+ 87	
+ 88	
+ 89	----------------------------------------------------------------------
+ 90	Ran 1 test in 46.472s
+ 91	
+ 92	FAILED (failures=1)
+ 93	
+
+
+id            9349
+result        Failed
+test          azure.cli.command_modules.storage.tests.latest.test_storage_scenarios_non_ascii_chars.StorageCopyTests.test_storage_file_copy_non_ascii
+duration(ms)  24956
+
+ 0	/usr/local/lib/python3.6/site-packages/azure/cli/command_modules/appservice/commands.py:67: ResourceWarning: unclosed <socket.socket fd=5, family=AddressFamily.AF_INET, type=2049, proto=6, laddr=('10.244.1.19', 49628), raddr=('52.183.66.247', 443)>
+ 1	  client_factory=cf_webapps
+ 2	/usr/local/lib/python3.6/site-packages/azure/cli/core/commands/__init__.py:114: ResourceWarning: unclosed <socket.socket fd=5, family=AddressFamily.AF_INET, type=2049, proto=6, laddr=('10.244.1.19', 49636), raddr=('52.183.66.247', 443)>
+ 3	  deprecate_info=deprecate_info, validator=validator, **kwargs)
+ 4	/usr/local/lib/python3.6/site-packages/azure/cli/core/commands/__init__.py:114: ResourceWarning: unclosed <socket.socket fd=6, family=AddressFamily.AF_INET, type=2049, proto=6, laddr=('10.244.1.19', 49708), raddr=('52.183.66.247', 443)>
+ 5	  deprecate_info=deprecate_info, validator=validator, **kwargs)
+ 6	/usr/local/lib/python3.6/site-packages/azure_devtools/scenario_tests/preparers.py:54: DeprecationWarning: inspect.getargspec() is deprecated, use inspect.signature() or inspect.getfullargspec()
+ 7	  args, _, kw, _ = inspect.getargspec(fn)  # pylint: disable=deprecated-method
+ 8	/usr/local/lib/python3.6/site-packages/azure/cli/core/commands/__init__.py:685: ResourceWarning: unclosed <socket.socket fd=5, family=AddressFamily.AF_INET, type=2049, proto=6, laddr=('10.244.1.19', 49724), raddr=('52.183.66.247', 443)>
+ 9	  self.command_loader._cli_command(command_name, operation, **merged_kwargs)  # pylint: disable=protected-access
+ 10	/usr/local/lib/python3.6/site-packages/knack/cli.py:194: ResourceWarning: unclosed <socket.socket fd=5, family=AddressFamily.AF_INET, type=2049, proto=6, laddr=('10.244.1.19', 50682), raddr=('13.93.168.92', 443)>
+ 11	  cmd_result = self.invocation.execute(args)
+ 12	/usr/local/lib/python3.6/site-packages/knack/cli.py:194: ResourceWarning: unclosed <socket.socket fd=5, family=AddressFamily.AF_INET, type=2049, proto=6, laddr=('10.244.1.19', 50684), raddr=('13.93.168.92', 443)>
+ 13	  cmd_result = self.invocation.execute(args)
+ 14	E
+ 15	======================================================================
+ 16	ERROR: test_storage_file_copy_non_ascii (azure.cli.command_modules.storage.tests.latest.test_storage_scenarios_non_ascii_chars.StorageCopyTests)
+ 17	----------------------------------------------------------------------
+ 18	Traceback (most recent call last):
+ 19	  File "/usr/local/lib/python3.6/site-packages/azure_devtools/scenario_tests/preparers.py", line 60, in _preparer_wrapper
+ 20	    fn(test_class_instance, **kwargs)
+ 21	  File "/usr/local/lib/python3.6/site-packages/azure_devtools/scenario_tests/preparers.py", line 60, in _preparer_wrapper
+ 22	    fn(test_class_instance, **kwargs)
+ 23	  File "/usr/local/lib/python3.6/site-packages/azure/cli/command_modules/storage/tests/latest/test_storage_scenarios_non_ascii_chars.py", line 48, in test_storage_file_copy_non_ascii
+ 24	    with open(os.path.join(source_dir, file_name), 'wb') as temp_file:
+ 25	UnicodeEncodeError: 'ascii' codec can't encode characters in position 21-23: ordinal not in range(128)
+ 26	
+ 27	----------------------------------------------------------------------
+ 28	Ran 1 test in 24.378s
+ 29	
+ 30	FAILED (errors=1)
+ 31	
+
+
