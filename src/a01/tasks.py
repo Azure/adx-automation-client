@@ -1,3 +1,5 @@
+import json
+
 import requests
 import tabulate
 
@@ -15,7 +17,10 @@ from a01.common import get_store_uri, LOG_FILE, download_recording
 @a01.cli.arg('recording_az_mode', option=['--az-mode'],
              help='When download the recording files the files are arranged in directory structure mimic Azure CLI '
                   'source code.')
-def get_task(ids: [str], log: bool = False, recording: bool = False, recording_az_mode: bool = False) -> None:
+@a01.cli.arg('details', option=('-d', '--details'),
+             help='Show the details of the task.')
+def get_task(ids: [str], log: bool = False, recording: bool = False, recording_az_mode: bool = False,
+             details: bool = False) -> None:
     for task_id in ids:
         resp = requests.get(f'{get_store_uri()}/task/{task_id}')
         resp.raise_for_status()
@@ -28,6 +33,10 @@ def get_task(ids: [str], log: bool = False, recording: bool = False, recording_a
         ]
 
         print(tabulate.tabulate(view, tablefmt='plain'))
+        if details:
+            print()
+            print(json.dumps(task, indent=2))
+
         if log:
             log_path = LOG_FILE.format(f'{task["run_id"]}/task_{task_id}.log')
             print()
@@ -35,6 +44,7 @@ def get_task(ids: [str], log: bool = False, recording: bool = False, recording_a
                 print(f' {index}\t{line}')
 
         if recording:
+            print()
             download_recording(task, recording_az_mode)
 
         print()
