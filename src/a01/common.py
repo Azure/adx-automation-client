@@ -15,6 +15,8 @@ LOG_FILE = 'https://azureclia01log.file.core.windows.net/k8slog/{}' \
            '?sv=2017-04-17&ss=f&srt=o&sp=r&se=2019-01-01T00:00:00Z&st=2018-01-04T10:21:21Z&' \
            'spr=https&sig=I9Ajm2i8Knl3hm1rfN%2Ft2E934trzj%2FNnozLYhQ%2Bb7TE%3D'
 
+DROID_CONTAINER_REGISTRY = 'azureclidev'
+
 
 coloredlogs.install(level=os.environ.get('A01_DEBUG', 'ERROR'))
 
