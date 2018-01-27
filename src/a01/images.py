@@ -12,7 +12,7 @@ from a01.common import DROID_CONTAINER_REGISTRY, get_logger
 @a01.cli.arg('author', help='The author of the droid image. The official image\' author is "azure" which is the '
                             'default value.')
 @a01.cli.arg('latest', option=('-l', '--latest'), help='Return the latest droid image.')
-def list_images(author: str = 'azure', latest: bool=False) -> None:
+def list_images(author: str = 'azure', latest: bool = False) -> None:
     try:
         author = f'private-{author}' if author != 'azure' else author
         repo = f'azurecli-test-{author}'
@@ -30,7 +30,7 @@ def list_images(author: str = 'azure', latest: bool=False) -> None:
         get_logger(__name__).exception(f'Fail to list images for {repo}')
 
 
-class _DroidImage(object):
+class _DroidImage(object):  # pylint: disable=too-few-public-methods
     def __init__(self, server: str, repository: str, tag: str) -> None:
         self._build_number = -1
 
