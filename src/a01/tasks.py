@@ -1,10 +1,10 @@
 import json
 
-import requests
 import tabulate
 
 import a01.cli
 from a01.common import get_store_uri, LOG_FILE, download_recording
+from a01.communication import session
 
 
 @a01.cli.cmd('get task', desc='Retrieve tasks information.')
@@ -22,7 +22,7 @@ from a01.common import get_store_uri, LOG_FILE, download_recording
 def get_task(ids: [str], log: bool = False, recording: bool = False, recording_az_mode: bool = False,
              details: bool = False) -> None:
     for task_id in ids:
-        resp = requests.get(f'{get_store_uri()}/task/{task_id}')
+        resp = session.get(f'{get_store_uri()}/task/{task_id}')
         resp.raise_for_status()
         task = resp.json()
         view = [
@@ -40,6 +40,7 @@ def get_task(ids: [str], log: bool = False, recording: bool = False, recording_a
         if log:
             log_path = LOG_FILE.format(f'{task["run_id"]}/task_{task_id}.log')
             print()
+            import requests
             for index, line in enumerate(requests.get(log_path).content.decode('utf-8').split('\n')):
                 print(f' {index}\t{line}')
 

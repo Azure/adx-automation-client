@@ -10,7 +10,7 @@ from a01.common import get_logger, CONFIG_DIR, TOKEN_FILE
 
 
 @a01.cli.cmd('login', desc='Log in with Microsoft account.')
-def login():
+def login() -> None:
     logger = get_logger(__name__)
 
     authority_url = 'https://login.microsoftonline.com/72f988bf-86f1-41af-91ab-2d7cd011db47'
@@ -31,13 +31,13 @@ def login():
 
 
 @a01.cli.cmd('logout', desc='Log out - clear the credentials')
-def logout():
+def logout() -> None:
     if os.path.exists(TOKEN_FILE):
         os.remove(TOKEN_FILE)
 
 
 @a01.cli.cmd('whoami', desc='Describe the current credential')
-def whoami():
+def whoami() -> None:
     if not os.path.exists(TOKEN_FILE):
         print('You need to login. Usage: a01 login.')
         sys.exit(0)

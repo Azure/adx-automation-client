@@ -11,20 +11,21 @@ import re
 from collections import defaultdict
 from subprocess import check_output, CalledProcessError
 
-import requests
 import tabulate
 import yaml
+from requests import HTTPError
 
 from a01.common import get_store_uri, get_logger, download_recording
 from a01.tasks import get_task
 from a01.cli import cmd, arg
+from a01.communication import session
 
 logger = get_logger(__name__)  # pylint: disable=invalid-name
 
 
 @cmd('get runs', desc='Retrieve the runs.')
 def get_runs() -> None:
-    resp = requests.get(f'{get_store_uri()}/runs')
+    resp = session.get(f'{get_store_uri()}/runs')
     resp.raise_for_status()
     view = [(run['id'], run['name'], run['creation']) for run in resp.json()]
     print()
@@ -42,7 +43,7 @@ def get_runs() -> None:
      help='When download the recording files the files are arranged in directory structure mimic Azure CLI '
           'source code.')
 def get_run(run_id: str, log: bool = False, recording: bool = False, recording_az_mode: bool = False) -> None:
-    resp = requests.get(f'{get_store_uri()}/run/{run_id}/tasks')
+    resp = session.get(f'{get_store_uri()}/run/{run_id}/tasks')
     resp.raise_for_status()
     tasks = resp.json()
 
@@ -136,7 +137,7 @@ def schedule_run(image: str,  # pylint: disable=too-many-arguments
             candidates = [candidate for candidate in candidates if candidate['path'].startswith(prefix)]
 
         if from_failures:
-            all_tasks = requests.get(f'{get_store_uri()}/run/{from_failures}/tasks').json()
+            all_tasks = session.get(f'{get_store_uri()}/run/{from_failures}/tasks').json()
             failed_test_paths = set([task['settings']['path'] for task in all_tasks if task['result'] != 'Passed'])
             candidates = [candidate for candidate in candidates if candidate['path'] in failed_test_paths]
 
@@ -144,7 +145,7 @@ def schedule_run(image: str,  # pylint: disable=too-many-arguments
 
     def post_run(store_uri: str, image_name: str) -> str:
         try:
-            resp = requests.post(f'{store_uri}/run', json={
+            resp = session.post(f'{store_uri}/run', json={
                 'name': f'Azure CLI Test @ {image_name}',
                 'settings': {
                     'droid_image': image_name
@@ -155,7 +156,7 @@ def schedule_run(image: str,  # pylint: disable=too-many-arguments
                 }
             })
             return resp.json()['id']
-        except requests.HTTPError:
+        except HTTPError:
             logger.exception('Failed to create run in the task store.')
             sys.exit(1)
         except (json.JSONDecodeError, TypeError):
@@ -172,8 +173,8 @@ def schedule_run(image: str,  # pylint: disable=too-many-arguments
                         'path': task['path'],
                     }
                 } for task in tasks]
-            requests.post(f'{store_uri}/run/{run_id}/tasks', json=task_payload).raise_for_status()
-        except requests.HTTPError:
+            session.post(f'{store_uri}/run/{run_id}/tasks', json=task_payload).raise_for_status()
+        except HTTPError:
             logger.exception('Failed to create tasks in the task store.')
             sys.exit(1)
         return run_id
@@ -274,5 +275,5 @@ def schedule_run(image: str,  # pylint: disable=too-many-arguments
 @arg('ids', help='Ids of the run to be deleted.', positional=True)
 def delete_run(ids: typing.List[str]) -> None:
     for each in ids:
-        resp = requests.delete(f'{get_store_uri()}/run/{each}')
+        resp = session.delete(f'{get_store_uri()}/run/{each}')
         resp.raise_for_status()

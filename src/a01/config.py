@@ -4,11 +4,11 @@ import json
 from typing import Callable
 from subprocess import check_output, CalledProcessError, STDOUT
 
-import requests
 import colorama
 
 import a01.cli
 from a01.common import KUBE_STORE_NAME, DROID_CONTAINER_REGISTRY
+from a01.communication import session
 
 
 @a01.cli.cmd('check', desc='Examine the current settings and environment.')
@@ -58,7 +58,7 @@ def verify_item(name: str, command: str, hint: str = None, validate_fn: Callable
 
 
 def _check_task_store_healthy(store_ip: str) -> None:
-    resp = requests.get(f'http://{store_ip}/healthy')
+    resp = session.get(f'http://{store_ip}/healthy')
     resp.raise_for_status()
     if json.loads(resp.content.decode('utf-8'))['status'] != 'healthy':
         raise ValueError()
