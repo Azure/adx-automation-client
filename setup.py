@@ -18,7 +18,8 @@ DEPENDENCIES = [
     'requests>=2.18.4',
     'PyYAML>=3.12',
     'coloredlogs>=8.0',
-    'colorama>=0.3.9'
+    'colorama>=0.3.9',
+    'adal>=0.5.0'
 ]
 
 setup(
