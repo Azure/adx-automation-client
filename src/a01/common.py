@@ -17,6 +17,9 @@ LOG_FILE = 'https://azureclia01log.file.core.windows.net/k8slog/{}' \
 
 DROID_CONTAINER_REGISTRY = 'azureclidev'
 
+CONFIG_DIR = os.path.expanduser('~/.a01')
+TOKEN_FILE = os.path.join(CONFIG_DIR, 'token.json')
+
 
 coloredlogs.install(level=os.environ.get('A01_DEBUG', 'ERROR'))
 
