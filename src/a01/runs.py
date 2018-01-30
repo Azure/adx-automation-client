@@ -187,7 +187,7 @@ def schedule_run(image: str,  # pylint: disable=too-many-arguments
             {'name': 'ENV_POD_NAME', 'valueFrom': {'fieldRef': {'fieldPath': 'metadata.name'}}},
             {'name': 'ENV_NODE_NAME', 'valueFrom': {'fieldRef': {'fieldPath': 'spec.nodeName'}}},
             {'name': 'A01_DROID_RUN_ID', 'value': str(run_id)},
-            {'name': 'A01_STORE_NAME', 'value': 'task-store-web-service'}
+            {'name': 'A01_STORE_NAME', 'value': 'task-store-web-service-internal'}
         ]
         if live:
             environment_variables.append({'name': 'A01_RUN_LIVE', 'value': 'True'})
@@ -197,6 +197,9 @@ def schedule_run(image: str,  # pylint: disable=too-many-arguments
                 {'name': 'A01_SP_PASSWORD', 'valueFrom': {'secretKeyRef': {'name': sp_secret, 'key': 'password'}}})
             environment_variables.append(
                 {'name': 'A01_SP_TENANT', 'valueFrom': {'secretKeyRef': {'name': sp_secret, 'key': 'tenant'}}})
+            environment_variables.append(
+                {'name': 'A01_INTERNAL_COMKEY',
+                 'valueFrom': {'secretKeyRef': {'name': 'a01store-internal-communication-key', 'key': 'key'}}})
 
         return {
             'apiVersion': 'batch/v1',
