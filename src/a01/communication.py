@@ -13,7 +13,7 @@ class A01Auth(requests.auth.AuthBase):  # pylint: disable=too-few-public-methods
             with open(TOKEN_FILE) as token_file:
                 token = json.load(token_file)
             expire = datetime.datetime.strptime(token['expiresOn'], '%Y-%m-%d %H:%M:%S.%f')
-            if expire < datetime.datetime.utcnow():
+            if expire < datetime.datetime.now():
                 import adal
                 context = adal.AuthenticationContext(AUTHORITY_URL, api_version=None)
                 access_token = context.acquire_token_with_refresh_token(token['refreshToken'], CLIENT_ID, RESOURCE_ID)

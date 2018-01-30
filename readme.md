@@ -13,7 +13,7 @@
 
 $ virtualenv env --python=python3
 $ . env/bin/activate
-$ curl -sOL https://github.com/troydai/a01client/releases/download/0.3.0/a01ctl-0.3.0-py3-none-any.whl
-$ pip install a01ctl-0.3.0-py3-none-any.whl
+$ curl -sOL https://github.com/troydai/a01client/releases/download/0.3.1/a01ctl-0.3.1-py3-none-any.whl
+$ pip install a01ctl-0.3.1-py3-none-any.whl
 
 ```
