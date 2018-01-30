@@ -97,8 +97,8 @@ def get_run(run_id: str, log: bool = False, recording: bool = False, recording_a
      help='The number of job to run in parallel. Can be scaled later through kubectl.')
 @arg('dry_run', option=('--dryrun', '--dry-run'), help='List the tasks instead of actually schedule a run.',
      action='store_true')
-@arg('from_failures', help='Create the run base on the failed tasks of another run')
-@arg('path_prefix', help='Filter the task base on the test path prefix')
+@arg('from_failures', option=['--from-failures'], help='Create the run base on the failed tasks of another run')
+@arg('path_prefix', option=['--prefix'], help='Filter the task base on the test path prefix')
 @arg('live', help='Run test live')
 @arg('sp_secret', option=('--sp', '--service-principal-secret'),
      help='The kubernete secret represents the service principal for live test.')
@@ -187,7 +187,9 @@ def schedule_run(image: str,  # pylint: disable=too-many-arguments
             {'name': 'ENV_POD_NAME', 'valueFrom': {'fieldRef': {'fieldPath': 'metadata.name'}}},
             {'name': 'ENV_NODE_NAME', 'valueFrom': {'fieldRef': {'fieldPath': 'spec.nodeName'}}},
             {'name': 'A01_DROID_RUN_ID', 'value': str(run_id)},
-            {'name': 'A01_STORE_NAME', 'value': 'task-store-web-service-internal'}
+            {'name': 'A01_STORE_NAME', 'value': 'task-store-web-service-internal'},
+            {'name': 'A01_INTERNAL_COMKEY',
+             'valueFrom': {'secretKeyRef': {'name': 'a01store-internal-communication-key', 'key': 'key'}}}
         ]
         if live:
             environment_variables.append({'name': 'A01_RUN_LIVE', 'value': 'True'})
@@ -197,9 +199,6 @@ def schedule_run(image: str,  # pylint: disable=too-many-arguments
                 {'name': 'A01_SP_PASSWORD', 'valueFrom': {'secretKeyRef': {'name': sp_secret, 'key': 'password'}}})
             environment_variables.append(
                 {'name': 'A01_SP_TENANT', 'valueFrom': {'secretKeyRef': {'name': sp_secret, 'key': 'tenant'}}})
-            environment_variables.append(
-                {'name': 'A01_INTERNAL_COMKEY',
-                 'valueFrom': {'secretKeyRef': {'name': 'a01store-internal-communication-key', 'key': 'key'}}})
 
         return {
             'apiVersion': 'batch/v1',
