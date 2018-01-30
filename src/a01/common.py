@@ -1,3 +1,4 @@
+import sys
 import os
 import logging
 import functools
@@ -20,6 +21,8 @@ RESOURCE_ID = '00000002-0000-0000-c000-000000000000'
 
 CONFIG_DIR = os.path.expanduser('~/.a01')
 TOKEN_FILE = os.path.join(CONFIG_DIR, 'token.json')
+
+USE_SHELL = sys.platform.lower() in ['windows', 'win32']
 
 
 coloredlogs.install(level=os.environ.get('A01_DEBUG', 'ERROR'))

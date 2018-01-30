@@ -2,8 +2,12 @@
 
 ## Prerequisite
 
-- Python 3.0
+- Python 3.6+
 - Run `a01 check` to validate environment.
+
+- Docker CE
+- Azure CLI
+- Kubectl
 
 ## Install
 
@@ -13,7 +17,19 @@
 
 $ virtualenv env --python=python3
 $ . env/bin/activate
-$ curl -sOL https://github.com/troydai/a01client/releases/download/0.3.1/a01ctl-0.3.1-py3-none-any.whl
-$ pip install a01ctl-0.3.1-py3-none-any.whl
+$ curl -sOL https://github.com/troydai/a01client/releases/download/0.3.2/a01ctl-0.3.2-py3-none-any.whl
+$ pip install a01ctl-0.3.2-py3-none-any.whl
+
+```
+
+### Windows
+
+- Download the file https://github.com/troydai/a01client/releases/download/0.3.2/a01ctl-0.3.2-py3-none-any.whl (or the latest release)
+
+```cmd
+
+> python -m virtualenv env --python=python3.6
+> env\Scripts\activate
+> pip install <PATH_TO_WHEEL>
 
 ```

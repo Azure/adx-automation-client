@@ -5,7 +5,7 @@ from subprocess import check_output, CalledProcessError
 import tabulate
 
 import a01.cli
-from a01.common import DROID_CONTAINER_REGISTRY, get_logger
+from a01.common import DROID_CONTAINER_REGISTRY, USE_SHELL, get_logger
 
 
 @a01.cli.cmd('get images', desc='List the droid images')
@@ -17,7 +17,8 @@ def list_images(author: str = 'azure', latest: bool = False) -> None:
         author = f'private-{author}' if author != 'azure' else author
         repo = f'azurecli-test-{author}'
         output = check_output(shlex.split(f'az acr repository show-tags --repository {repo} '
-                                          f'-n {DROID_CONTAINER_REGISTRY} -ojson'))
+                                          f'-n {DROID_CONTAINER_REGISTRY} -ojson'),
+                              shell=USE_SHELL)
         # assume all on same python version and platform
         image_list = [_DroidImage(f'{DROID_CONTAINER_REGISTRY}.azurecr.io', repo, tag) for tag in json.loads(output)]
         image_list = sorted(image_list, key=lambda img: img.build_number, reverse=True)
