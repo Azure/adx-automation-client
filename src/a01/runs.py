@@ -15,7 +15,7 @@ import tabulate
 import yaml
 from requests import HTTPError
 
-from a01.common import get_store_uri, get_logger, download_recording, USE_SHELL
+from a01.common import get_store_uri, get_logger, download_recording, IS_WINDOWS
 from a01.tasks import get_task
 from a01.cli import cmd, arg
 from a01.communication import session
@@ -116,8 +116,8 @@ def schedule_run(image: str,  # pylint: disable=too-many-arguments
         run_cmd = f'docker run --name {temp_container_name} {image_name} python /app/collect_tests.py'
         rm_cmd = f'docker rm {temp_container_name}'
         try:
-            output = check_output(shlex.split(run_cmd), shell=USE_SHELL)
-            check_output(shlex.split(rm_cmd), shell=USE_SHELL)
+            output = check_output(shlex.split(run_cmd, posix=not IS_WINDOWS), shell=IS_WINDOWS)
+            check_output(shlex.split(rm_cmd, posix=not IS_WINDOWS), shell=IS_WINDOWS)
             tests = json.loads(output)
             if query:
                 tests = [t for t in tests if re.match(query, t['path'])]
@@ -243,7 +243,7 @@ def schedule_run(image: str,  # pylint: disable=too-many-arguments
         logger.info(f'Temp config file saved at {config_file}')
 
         try:
-            check_output(shlex.split(f'kubectl create -f {config_file} --namespace az'), shell=USE_SHELL)
+            check_output(shlex.split(f'kubectl create -f {config_file} --namespace az', posix=not IS_WINDOWS), shell=IS_WINDOWS)
         except CalledProcessError:
             logger.exception(f'Failed to create job.')
             sys.exit(1)
