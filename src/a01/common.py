@@ -14,6 +14,10 @@ LOG_FILE = 'https://azureclia01log.file.core.windows.net/k8slog/{}' \
 
 DROID_CONTAINER_REGISTRY = 'azureclidev'
 
+AUTHORITY_URL = 'https://login.microsoftonline.com/72f988bf-86f1-41af-91ab-2d7cd011db47'
+CLIENT_ID = '85a8cba4-45e9-466b-950b-7eeaacfb09b2'
+RESOURCE_ID = '00000002-0000-0000-c000-000000000000'
+
 CONFIG_DIR = os.path.expanduser('~/.a01')
 TOKEN_FILE = os.path.join(CONFIG_DIR, 'token.json')
 
