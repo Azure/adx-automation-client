@@ -243,7 +243,8 @@ def schedule_run(image: str,  # pylint: disable=too-many-arguments
         logger.info(f'Temp config file saved at {config_file}')
 
         try:
-            check_output(shlex.split(f'kubectl create -f {config_file} --namespace az', posix=not IS_WINDOWS), shell=IS_WINDOWS)
+            check_output(shlex.split(f'kubectl create -f {config_file} --namespace az', posix=not IS_WINDOWS),
+                         shell=IS_WINDOWS)
         except CalledProcessError:
             logger.exception(f'Failed to create job.')
             sys.exit(1)
