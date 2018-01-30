@@ -42,7 +42,8 @@ def verify_item(name: str, command: str, hint: str = None, validate_fn: Callable
         sys.stderr.write(f'Validating {name} ... ')
         sys.stderr.flush()
 
-        output = check_output(shlex.split(command, posix=not IS_WINDOWS), stderr=STDOUT, shell=IS_WINDOWS).decode('utf-8')
+        output = check_output(shlex.split(command, posix=not IS_WINDOWS), stderr=STDOUT, shell=IS_WINDOWS).decode(
+            'utf-8')
         validate_fn(output)
 
         sys.stderr.write(colorama.Fore.GREEN + 'ok\n' + colorama.Fore.RESET)
