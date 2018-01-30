@@ -2,10 +2,8 @@
 
 ## Prerequisite
 
-- Python 3.6
-- Install Kubectl and login to the cluster of your A01 system.
-- Install az to login to the Azure Container Registry for droid image.
-- Install docker to list images (optional).
+- Python 3.0
+- Run `a01 check` to validate environment.
 
 ## Install
 
@@ -15,7 +13,7 @@
 
 $ virtualenv env --python=python3
 $ . env/bin/activate
-$ curl -sOL https://github.com/troydai/a01client/releases/download/0.2.2/a01ctl-0.2.3-py3-none-any.whl
-$ pip install a01ctl-0.2.3-py3-none-any.whl
+$ curl -sOL https://github.com/troydai/a01client/releases/download/0.3.0/a01ctl-0.3.0-py3-none-any.whl
+$ pip install a01ctl-0.3.0-py3-none-any.whl
 
 ```
