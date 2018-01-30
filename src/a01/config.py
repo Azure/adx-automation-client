@@ -37,6 +37,7 @@ def check_environment():
 
 
 def verify_item(name: str, command: str, hint: str = None, validate_fn: Callable[[str], None] = lambda _: None) -> bool:
+    import requests
     try:
         sys.stderr.write(f'Validating {name} ... ')
         sys.stderr.flush()
@@ -47,7 +48,6 @@ def verify_item(name: str, command: str, hint: str = None, validate_fn: Callable
         sys.stderr.flush()
 
         return True
-
     except (CalledProcessError, ValueError, requests.HTTPError):
         sys.stderr.write(colorama.Fore.RED + 'failed\n' + colorama.Fore.RESET)
         if hint:

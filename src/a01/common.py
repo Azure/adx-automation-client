@@ -1,9 +1,6 @@
 import os
 import logging
-import sys
-import shlex
 import functools
-from subprocess import check_output, CalledProcessError
 
 import requests
 import coloredlogs
@@ -30,15 +27,7 @@ def get_logger(name: str) -> logging.Logger:
 
 @functools.lru_cache(maxsize=4)
 def get_store_uri() -> str:
-    cmd = f'kubectl get service {KUBE_STORE_NAME} --namespace az' + ' -ojsonpath={.status.loadBalancer.ingress[0].ip}'
-    try:
-        store_ip = check_output(shlex.split(cmd)).decode('utf-8')
-        return f'http://{store_ip}'
-    except CalledProcessError:
-        logger = get_logger(__name__)
-        logger.error('Failed to get the a01 task store service URI. Make sure kubectl is installed and login the '
-                     'cluster.')
-        sys.exit(1)
+    return os.environ.get('A01_STORE_URI', 'https://a01.troydai.com')
 
 
 def download_recording(task: dict, az_mode: bool) -> None:
