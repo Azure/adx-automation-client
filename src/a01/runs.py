@@ -112,7 +112,7 @@ def schedule_run(image: str,  # pylint: disable=too-many-arguments
                  query: str = None) -> None:
     @functools.lru_cache(maxsize=1)
     def get_tasks_from_image(image_name: str) -> typing.List[dict]:
-        temp_container_name = base64.b32encode(os.urandom(12))[:-4]
+        temp_container_name = base64.b32encode(os.urandom(12))[:-4].decode('utf-8')
         run_cmd = f'docker run --name {temp_container_name} {image_name} python /app/collect_tests.py'
         rm_cmd = f'docker rm {temp_container_name}'
         try:

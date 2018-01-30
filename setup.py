@@ -2,7 +2,7 @@
 
 from setuptools import setup
 
-VERSION = "0.3.3"
+VERSION = "0.3.6"
 
 CLASSIFIERS = [
     'Development Status :: 4 - Beta',
