@@ -6,23 +6,19 @@ import adal
 import tabulate
 
 import a01.cli
-from a01.common import get_logger, CONFIG_DIR, TOKEN_FILE
+from a01.common import get_logger, CONFIG_DIR, TOKEN_FILE, AUTHORITY_URL, CLIENT_ID, RESOURCE_ID
 
 
 @a01.cli.cmd('login', desc='Log in with Microsoft account.')
 def login() -> None:
     logger = get_logger(__name__)
 
-    authority_url = 'https://login.microsoftonline.com/72f988bf-86f1-41af-91ab-2d7cd011db47'
-    client_id = '85a8cba4-45e9-466b-950b-7eeaacfb09b2'
-    resource = '00000002-0000-0000-c000-000000000000'
-
-    context = adal.AuthenticationContext(authority_url, api_version=None)
-    code = context.acquire_user_code(resource, client_id)
+    context = adal.AuthenticationContext(AUTHORITY_URL, api_version=None)
+    code = context.acquire_user_code(RESOURCE_ID, CLIENT_ID)
     logger.debug(f'Acquired user code {json.dumps(code, indent=2)}')
     print(code['message'])
 
-    token = context.acquire_token_with_device_code(resource, code, client_id)
+    token = context.acquire_token_with_device_code(RESOURCE_ID, code, CLIENT_ID)
     logger.debug(f'Acquired token with device code {json.dumps(token, indent=2)}')
 
     os.makedirs(CONFIG_DIR, exist_ok=True)
