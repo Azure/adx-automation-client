@@ -63,7 +63,7 @@ def get_run(run_id: str, log: bool = False, recording: bool = False, recording_a
         statuses[status] = statuses[status] + 1
         results[result] = results[result] + 1
 
-        if result == 'Failed':
+        if result != 'Passed':
             failure.append(
                 (task['id'],
                  task['name'].rsplit('.')[-1],
