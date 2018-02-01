@@ -44,6 +44,10 @@ def get_runs() -> None:
           'source code.')
 def get_run(run_id: str, log: bool = False, recording: bool = False, recording_az_mode: bool = False) -> None:
     resp = session.get(f'{get_store_uri()}/run/{run_id}/tasks')
+    if resp.status_code == 404:
+        print(f'Run {run_id} is not found.')
+        sys.exit(1)
+
     resp.raise_for_status()
     tasks = resp.json()
 
