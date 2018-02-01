@@ -7,7 +7,7 @@ from subprocess import check_output, CalledProcessError, STDOUT
 import colorama
 
 import a01.cli
-from a01.common import KUBE_STORE_NAME, DROID_CONTAINER_REGISTRY, IS_WINDOWS
+from a01.common import DROID_CONTAINER_REGISTRY, IS_WINDOWS
 from a01.communication import session
 
 
@@ -27,11 +27,6 @@ def check_environment():
     result &= verify_item('Kubernete namespace az', 'kubectl get namespace az',
                           'The cluster must have a namespace named az associated. You may not have log in your '
                           'kubectrl with correct AKS service. Run "az aks get-credentials -n <aks_service>" to login.')
-
-    cmd = f'kubectl get service {KUBE_STORE_NAME} --namespace az' + ' -ojsonpath={.status.loadBalancer.ingress[0].ip}'
-    result &= verify_item('Kubernete service', cmd,
-                          'There must be service named "task-store-web-service" exposed in the az namespace.',
-                          _check_task_store_healthy)
 
     sys.exit(0 if result else 1)
 
