@@ -47,3 +47,14 @@ def whoami() -> None:
 
     cred = [{'Name': k, 'Value': v} for k, v in cred.items()]
     print(tabulate.tabulate(cred))
+
+
+def get_user_id() -> str:
+    if not os.path.exists(TOKEN_FILE):
+        print('You need to login. Usage: a01 login.')
+        sys.exit(1)
+
+    with open(TOKEN_FILE) as token_file:
+        cred = json.load(token_file)
+
+    return cred['userId']
