@@ -19,6 +19,7 @@ from a01.common import get_store_uri, get_logger, download_recording, IS_WINDOWS
 from a01.tasks import get_task
 from a01.cli import cmd, arg
 from a01.communication import session
+from a01.auth import get_user_id
 
 logger = get_logger(__name__)  # pylint: disable=invalid-name
 
@@ -109,12 +110,15 @@ def get_run(run_id: str, log: bool = False, recording: bool = False, recording_a
 @arg('storage_secret', option=('--storage', '--log-storage-secret'),
      help='The kubernete secret represents the Azure Storage Account credential for logging')
 @arg('query', help='The regular expression used to query the tests.')
-@arg('remark', help='The addition information regarding to this run.')
+@arg('remark', help='The addition information regarding to this run. Specify "official" will trigger an email '
+                    'notification to the entire team after the job finishes.')
+@arg('email', help='Send an email to you after the job finishes.')
 def create_run(image: str,  # pylint: disable=too-many-arguments
                path_prefix: str = None, from_failures: str = None, dry_run: bool = False, live: bool = False,
                parallelism: int = 3, sp_secret: str = 'azurecli-live-sp', storage_secret: str = 'azurecli-test-storage',
-               query: str = None, remark: str = '') -> None:
+               query: str = None, remark: str = None, email: bool = False) -> None:
     job_name = f'azurecli-test-{base64.b32encode(os.urandom(12)).decode("utf-8").lower()}'.rstrip('=')
+    remark = remark or ''
 
     @functools.lru_cache(maxsize=1)
     def get_tasks_from_image() -> typing.List[dict]:
@@ -252,6 +256,27 @@ def create_run(image: str,  # pylint: disable=too-many-arguments
         }
 
     def config_monitor_job(run_id: str) -> dict:
+        environments = [{'name': 'A01_MONITOR_RUN_ID', 'value': str(run_id)},
+                        {'name': 'A01_MONITOR_INTERVAL', 'value': '30'},
+                        {'name': 'A01_STORE_NAME', 'value': 'task-store-web-service-internal'},
+                        {'name': 'A01_INTERNAL_COMKEY', 'valueFrom': {
+                            'secretKeyRef': {'name': 'a01store-internal-communication-key', 'key': 'key'}}}]
+        if email or remark.lower() == 'official':
+            environments.extend([
+                {'name': 'A01_REPORT_SMTP_SERVER',
+                 'valueFrom': {'secretKeyRef': {'name': 'azurecli-email', 'key': 'server'}}},
+                {'name': 'A01_REPORT_SENDER_ADDRESS',
+                 'valueFrom': {'secretKeyRef': {'name': 'azurecli-email', 'key': 'username'}}},
+                {'name': 'A01_REPORT_SENDER_PASSWORD',
+                 'valueFrom': {'secretKeyRef': {'name': 'azurecli-email', 'key': 'password'}}}])
+
+            if remark.lower() == 'official':
+                environments.append({'name': 'A01_REPORT_RECEIVER',
+                                     'valueFrom': {
+                                         'configMapKeyRef': {'name': 'azurecli-config', 'key': 'official.email'}}})
+            elif email:
+                environments.append({'name': 'A01_REPORT_RECEIVER', 'value': get_user_id()})
+
         return {
             "apiVersion": "batch/v1",
             "kind": "Job",
@@ -273,13 +298,7 @@ def create_run(image: str,  # pylint: disable=too-many-arguments
                         'containers': [{
                             'name': 'monitor',
                             'image': 'azureclidev.azurecr.io/a01monitor:latest',
-                            'env': [
-                                {'name': 'A01_REPORT_RUN_ID', 'value': str(run_id)},
-                                {'name': 'A01_REPORT_INTERVAL', 'value': '15'},
-                                {'name': 'A01_STORE_NAME', 'value': 'task-store-web-service-internal'},
-                                {'name': 'A01_INTERNAL_COMKEY', 'valueFrom': {
-                                    'secretKeyRef': {'name': 'a01store-internal-communication-key', 'key': 'key'}}}
-                            ]
+                            'env': environments
                         }],
                         'imagePullSecrets': [
                             {'name': 'azureclidev-acr'}
