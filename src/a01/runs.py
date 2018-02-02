@@ -109,15 +109,17 @@ def get_run(run_id: str, log: bool = False, recording: bool = False, recording_a
 @arg('storage_secret', option=('--storage', '--log-storage-secret'),
      help='The kubernete secret represents the Azure Storage Account credential for logging')
 @arg('query', help='The regular expression used to query the tests.')
-def schedule_run(image: str,  # pylint: disable=too-many-arguments
-                 path_prefix: str = None, from_failures: str = None, dry_run: bool = False,
-                 live: bool = False, parallelism: int = 3, sp_secret: str = 'azurecli-live-sp',
-                 storage_secret: str = 'azurecli-test-storage',
-                 query: str = None) -> None:
+@arg('remark', help='The addition information regarding to this run.')
+def create_run(image: str,  # pylint: disable=too-many-arguments
+               path_prefix: str = None, from_failures: str = None, dry_run: bool = False, live: bool = False,
+               parallelism: int = 3, sp_secret: str = 'azurecli-live-sp', storage_secret: str = 'azurecli-test-storage',
+               query: str = None, remark: str = '') -> None:
+    job_name = f'azurecli-test-{base64.b32encode(os.urandom(12)).decode("utf-8").lower()}'.rstrip('=')
+
     @functools.lru_cache(maxsize=1)
-    def get_tasks_from_image(image_name: str) -> typing.List[dict]:
+    def get_tasks_from_image() -> typing.List[dict]:
         temp_container_name = base64.b32encode(os.urandom(12))[:-4].decode('utf-8')
-        run_cmd = f'docker run --name {temp_container_name} {image_name} python /app/collect_tests.py'
+        run_cmd = f'docker run --name {temp_container_name} {image} python /app/collect_tests.py'
         rm_cmd = f'docker rm {temp_container_name}'
         try:
             output = check_output(shlex.split(run_cmd, posix=not IS_WINDOWS), shell=IS_WINDOWS)
@@ -128,14 +130,14 @@ def schedule_run(image: str,  # pylint: disable=too-many-arguments
 
             return tests
         except CalledProcessError:
-            logger.exception(f'Failed to list tests in image {image_name}.')
+            logger.exception(f'Failed to list tests in image {image}.')
             sys.exit(1)
         except (json.JSONDecodeError, TypeError):
             logger.exception('Failed to parse the manifest as JSON.')
             sys.exit(1)
 
-    def select_tasks(image_name: str, from_failures: str, prefix: str) -> typing.List[dict]:
-        candidates = get_tasks_from_image(image_name)
+    def select_tasks(prefix: str) -> typing.List[dict]:
+        candidates = get_tasks_from_image()
 
         if prefix:
             candidates = [candidate for candidate in candidates if candidate['path'].startswith(prefix)]
@@ -147,16 +149,18 @@ def schedule_run(image: str,  # pylint: disable=too-many-arguments
 
         return candidates
 
-    def post_run(store_uri: str, image_name: str) -> str:
+    def post_run(store_uri: str) -> str:
         try:
             resp = session.post(f'{store_uri}/run', json={
-                'name': f'Azure CLI Test @ {image_name}',
+                'name': f'Azure CLI Test @ {image}',
                 'settings': {
-                    'droid_image': image_name
+                    'droid_image': image,
                 },
                 'details': {
-                    'creator': os.environ.get('USER', 'Unknown'),
-                    'client': 'A01 CLI'
+                    'creator': os.environ.get('USER', os.environ.get('USERNAME', 'Unknown')),
+                    'client': 'A01 CLI',
+                    'live': str(live),
+                    'remark': remark
                 }
             })
             return resp.json()['id']
@@ -167,12 +171,12 @@ def schedule_run(image: str,  # pylint: disable=too-many-arguments
             logger.exception('Failed to deserialize the response content.')
             sys.exit(1)
 
-    def post_tasks(tasks: typing.List[dict], run_id: str, image_name: str, store_uri: str) -> str:
+    def post_tasks(tasks: typing.List[dict], run_id: str, store_uri: str) -> str:
         try:
             task_payload = [
                 {
                     'name': f'Test: {task["path"]}',
-                    'annotation': image_name,
+                    'annotation': image,
                     'settings': {
                         'path': task['path'],
                     }
@@ -183,10 +187,7 @@ def schedule_run(image: str,  # pylint: disable=too-many-arguments
             sys.exit(1)
         return run_id
 
-    def config_job(parallelism: int,  # pylint: disable=too-many-arguments
-                   image_name: str, run_id: str, live: bool, storage_secret: str, sp_secret: str) -> dict:
-        job = f'azurecli-test-{base64.b32encode(os.urandom(12)).decode("utf-8").lower()}'.rstrip('=')
-
+    def config_job(run_id: str) -> dict:
         environment_variables = [
             {'name': 'ENV_POD_NAME', 'valueFrom': {'fieldRef': {'fieldPath': 'metadata.name'}}},
             {'name': 'ENV_NODE_NAME', 'valueFrom': {'fieldRef': {'fieldPath': 'spec.nodeName'}}},
@@ -208,19 +209,27 @@ def schedule_run(image: str,  # pylint: disable=too-many-arguments
             'apiVersion': 'batch/v1',
             'kind': 'Job',
             'metadata': {
-                'name': job
+                'name': job_name,
+                'labels': {
+                    'run_id': str(run_id),
+                    'run_live': str(live)
+                }
             },
             'spec': {
                 'parallelism': parallelism,
                 'backoffLimit': 5,
                 'template': {
                     'metadata': {
-                        'name': job
+                        'name': f'{job_name}-droid',
+                        'labels': {
+                            'run_id': str(run_id),
+                            'run_live': str(live)
+                        }
                     },
                     'spec': {
                         'containers': [{
                             'name': 'droid',
-                            'image': image_name,
+                            'image': image,
                             'command': ['python', '/app/job.py'],
                             'volumeMounts': [
                                 {'name': 'azure-storage', 'mountPath': '/mnt/storage'}
@@ -242,7 +251,46 @@ def schedule_run(image: str,  # pylint: disable=too-many-arguments
             }
         }
 
-    def post_job(config: dict) -> str:
+    def config_monitor_job(run_id: str) -> dict:
+        return {
+            "apiVersion": "batch/v1",
+            "kind": "Job",
+            "metadata": {
+                "name": f'{job_name}-monitor',
+                "labels": {
+                    'run_id': str(run_id)
+                }
+            },
+            "spec": {
+                'template': {
+                    'metadata': {
+                        'name': f'{job_name}-monitor-pod',
+                        'labels': {
+                            'run_id': str(run_id)
+                        }
+                    },
+                    'spec': {
+                        'containers': [{
+                            'name': 'monitor',
+                            'image': 'azureclidev.azurecr.io/a01monitor:latest',
+                            'env': [
+                                {'name': 'A01_REPORT_RUN_ID', 'value': str(run_id)},
+                                {'name': 'A01_REPORT_INTERVAL', 'value': '15'},
+                                {'name': 'A01_STORE_NAME', 'value': 'task-store-web-service-internal'},
+                                {'name': 'A01_INTERNAL_COMKEY', 'valueFrom': {
+                                    'secretKeyRef': {'name': 'a01store-internal-communication-key', 'key': 'key'}}}
+                            ]
+                        }],
+                        'imagePullSecrets': [
+                            {'name': 'azureclidev-acr'}
+                        ],
+                        'restartPolicy': 'Never'
+                    }
+                }
+            }
+        }
+
+    def post_job(config: dict) -> None:
         _, config_file = tempfile.mkstemp(text=True)
         with open(config_file, 'w') as config_file_handle:
             yaml.dump(config, config_file_handle, default_flow_style=False)
@@ -255,18 +303,14 @@ def schedule_run(image: str,  # pylint: disable=too-many-arguments
             logger.exception(f'Failed to create job.')
             sys.exit(1)
 
-        return config['metadata']['name']
-
-    selected_tasks = select_tasks(image, from_failures, path_prefix)
+    selected_tasks = select_tasks(path_prefix)
 
     run_name = post_tasks(selected_tasks,
-                          post_run(get_store_uri(), image),
-                          image,
+                          post_run(get_store_uri()),
                           get_store_uri()) if not dry_run else 'example_run'
 
-    job_config = config_job(parallelism, image, run_name, live, storage_secret, sp_secret)
-
-    job_name = post_job(job_config) if not dry_run else 'example_job'
+    job_config = config_job(run_name)
+    monitor_config = config_monitor_job(run_name)
 
     if dry_run:
         for index, each in enumerate(selected_tasks):
@@ -274,8 +318,12 @@ def schedule_run(image: str,  # pylint: disable=too-many-arguments
 
         print()
         print(yaml.dump(job_config, default_flow_style=False))
-
-    print(json.dumps({'run': run_name, 'job': job_name}))
+        print()
+        print(yaml.dump(monitor_config, default_flow_style=False))
+    else:
+        post_job(job_config)
+        post_job(monitor_config)
+        print(json.dumps({'run': run_name, 'job': job_name, 'monitor': f'{job_name}-monitor'}, indent=2))
 
 
 @cmd('delete run', desc='Delete a run as well as the tasks associate with it.')
