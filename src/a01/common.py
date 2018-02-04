@@ -56,7 +56,7 @@ def download_recording(task: dict, az_mode: bool) -> None:
         recording_file.write(resp.content)
 
 
-class A01Config(configparser.ConfigParser):
+class A01Config(configparser.ConfigParser):  # pylint: disable=too-many-ancestors
     def __init__(self, *args, **kwargs):
         super(A01Config, self).__init__(*args, **kwargs)
         self.read(CONFIG_FILE)
