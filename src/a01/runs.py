@@ -115,7 +115,8 @@ def get_run(run_id: str, log: bool = False, recording: bool = False, recording_a
 @arg('remark', help='The addition information regarding to this run. Specify "official" will trigger an email '
                     'notification to the entire team after the job finishes.')
 @arg('email', help='Send an email to you after the job finishes.')
-def create_run(image: str,  # pylint: disable=too-many-arguments
+# pylint: disable=too-many-arguments, too-many-locals
+def create_run(image: str,
                path_prefix: str = None, from_failures: str = None, dry_run: bool = False, live: bool = False,
                parallelism: int = 3, sp_secret: str = 'azurecli-live-sp', storage_secret: str = 'azurecli-test-storage',
                query: str = None, remark: str = None, email: bool = False) -> None:
