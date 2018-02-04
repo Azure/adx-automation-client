@@ -102,6 +102,8 @@ class ArgumentDefinition(object):  # pylint: disable=too-few-public-methods
                 kwargs['nargs'] = '+' if self.positional else '*'
             elif annotation is int:
                 kwargs['type'] = int
+            elif annotation is str:
+                kwargs['type'] = str
             else:
                 logger.warning(f'@arg: Unknown annotation type {annotation} on {self.dest}')
 

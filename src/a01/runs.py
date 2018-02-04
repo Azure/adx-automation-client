@@ -15,7 +15,7 @@ import tabulate
 import yaml
 from requests import HTTPError
 
-from a01.common import get_store_uri, get_logger, download_recording, IS_WINDOWS
+from a01.common import get_logger, download_recording, IS_WINDOWS, A01Config
 from a01.tasks import get_task
 from a01.cli import cmd, arg
 from a01.communication import session
@@ -26,7 +26,8 @@ logger = get_logger(__name__)  # pylint: disable=invalid-name
 
 @cmd('get runs', desc='Retrieve the runs.')
 def get_runs() -> None:
-    resp = session.get(f'{get_store_uri()}/runs')
+    config = A01Config()
+    resp = session.get(f'{config.endpoint_uri}/runs')
     resp.raise_for_status()
     view = [(run['id'], run['name'], run['creation']) for run in resp.json()]
     print()
@@ -44,7 +45,8 @@ def get_runs() -> None:
      help='When download the recording files the files are arranged in directory structure mimic Azure CLI '
           'source code.')
 def get_run(run_id: str, log: bool = False, recording: bool = False, recording_az_mode: bool = False) -> None:
-    resp = session.get(f'{get_store_uri()}/run/{run_id}/tasks')
+    config = A01Config()
+    resp = session.get(f'{config.endpoint_uri}/run/{run_id}/tasks')
     if resp.status_code == 404:
         print(f'Run {run_id} is not found.')
         sys.exit(1)
@@ -119,6 +121,8 @@ def create_run(image: str,  # pylint: disable=too-many-arguments
                query: str = None, remark: str = None, email: bool = False) -> None:
     job_name = f'azurecli-test-{base64.b32encode(os.urandom(12)).decode("utf-8").lower()}'.rstrip('=')
     remark = remark or ''
+    config = A01Config()
+    config.ensure_config()
 
     @functools.lru_cache(maxsize=1)
     def get_tasks_from_image() -> typing.List[dict]:
@@ -147,7 +151,7 @@ def create_run(image: str,  # pylint: disable=too-many-arguments
             candidates = [candidate for candidate in candidates if candidate['path'].startswith(prefix)]
 
         if from_failures:
-            all_tasks = session.get(f'{get_store_uri()}/run/{from_failures}/tasks').json()
+            all_tasks = session.get(f'{config.endpoint_uri}/run/{from_failures}/tasks').json()
             failed_test_paths = set([task['settings']['path'] for task in all_tasks if task['result'] != 'Passed'])
             candidates = [candidate for candidate in candidates if candidate['path'] in failed_test_paths]
 
@@ -324,9 +328,7 @@ def create_run(image: str,  # pylint: disable=too-many-arguments
 
     selected_tasks = select_tasks(path_prefix)
 
-    run_name = post_tasks(selected_tasks,
-                          post_run(get_store_uri()),
-                          get_store_uri()) if not dry_run else 'example_run'
+    run_name = post_tasks(selected_tasks, post_run(config.endpoint_uri), config.endpoint_uri) if not dry_run else '555'
 
     job_config = config_job(run_name)
     monitor_config = config_monitor_job(run_name)
@@ -348,6 +350,7 @@ def create_run(image: str,  # pylint: disable=too-many-arguments
 @cmd('delete run', desc='Delete a run as well as the tasks associate with it.')
 @arg('ids', help='Ids of the run to be deleted.', positional=True)
 def delete_run(ids: typing.List[str]) -> None:
+    config = A01Config()
     for each in ids:
-        resp = session.delete(f'{get_store_uri()}/run/{each}')
+        resp = session.delete(f'{config.endpoint_uri}/run/{each}')
         resp.raise_for_status()

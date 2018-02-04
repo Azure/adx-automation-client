@@ -1,7 +1,7 @@
 import sys
 import os
 import logging
-import functools
+import configparser
 
 import requests
 import coloredlogs
@@ -20,6 +20,7 @@ CLIENT_ID = '85a8cba4-45e9-466b-950b-7eeaacfb09b2'
 RESOURCE_ID = '00000002-0000-0000-c000-000000000000'
 
 CONFIG_DIR = os.path.expanduser('~/.a01')
+CONFIG_FILE = os.path.join(CONFIG_DIR, 'a01.ini')
 TOKEN_FILE = os.path.join(CONFIG_DIR, 'token.json')
 
 IS_WINDOWS = sys.platform.lower() in ['windows', 'win32']
@@ -30,11 +31,6 @@ coloredlogs.install(level=os.environ.get('A01_DEBUG', 'ERROR'))
 
 def get_logger(name: str) -> logging.Logger:
     return logging.getLogger(name)
-
-
-@functools.lru_cache(maxsize=4)
-def get_store_uri() -> str:
-    return os.environ.get('A01_STORE_URI', 'https://a01.troydai.com')
 
 
 def download_recording(task: dict, az_mode: bool) -> None:
@@ -58,3 +54,40 @@ def download_recording(task: dict, az_mode: bool) -> None:
     os.makedirs(os.path.dirname(recording_path), exist_ok=True)
     with open(recording_path, 'wb') as recording_file:
         recording_file.write(resp.content)
+
+
+class A01Config(configparser.ConfigParser):
+    def __init__(self, *args, **kwargs):
+        super(A01Config, self).__init__(*args, **kwargs)
+        self.read(CONFIG_FILE)
+        self.logger = get_logger(__class__.__name__)
+
+    def save(self) -> bool:
+        try:
+            os.makedirs(os.path.dirname(CONFIG_FILE), exist_ok=True)
+            with open(CONFIG_FILE, 'w') as handler:
+                self.write(handler)
+            return True
+        except IOError:
+            get_logger(__class__.__name__).error(f'Fail to write config file {CONFIG_FILE}')
+            return False
+
+    def ensure_config(self) -> None:
+        if not os.path.isfile(CONFIG_FILE) or 'endpoint' not in self:
+            self.logger.error(f'Cannot load configuration file: {CONFIG_FILE}.')
+            sys.exit(1)
+
+    @property
+    def endpoint(self) -> str:
+        self.ensure_config()
+        return self['endpoint']['host']
+
+    @endpoint.setter
+    def endpoint(self, value) -> None:
+        if 'endpoint' not in self:
+            self['endpoint'] = {}
+        self['endpoint']['host'] = value
+
+    @property
+    def endpoint_uri(self) -> str:
+        return f'https://{self.endpoint}'

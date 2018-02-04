@@ -1,60 +1,180 @@
 import os
 import json
 import sys
+from datetime import datetime
 
 import adal
 import tabulate
+import requests.auth
 
 import a01.cli
-from a01.common import get_logger, CONFIG_DIR, TOKEN_FILE, AUTHORITY_URL, CLIENT_ID, RESOURCE_ID
+from a01.common import get_logger, CONFIG_DIR, CONFIG_FILE, TOKEN_FILE, AUTHORITY_URL, CLIENT_ID, RESOURCE_ID, A01Config
+
+
+class AuthenticationError(Exception):
+    pass
+
+
+class AuthSettings(object):
+    def __init__(self):
+        self.logger = get_logger(__class__.__name__)
+        self._token_raw = None
+
+        try:
+            with open(TOKEN_FILE, 'r') as token_file:
+                self._token_raw = json.load(token_file)
+        except IOError:
+            self.logger.info(f'Token file {TOKEN_FILE} missing.')
+        except (json.JSONDecodeError, TypeError):
+            self.logger.exception(f'Fail to parse the file {TOKEN_FILE}.')
+
+    def _get_token_value(self, key: str) -> str:
+        try:
+            return self._token_raw[key]
+        except (TypeError, KeyError):
+            raise AuthenticationError()
+
+    @property
+    def has_login(self) -> bool:
+        try:
+            return self.user_id is not None
+        except AuthenticationError:
+            return False
+
+    @property
+    def is_expired(self) -> bool:
+        expire = datetime.strptime(self._get_token_value('expiresOn'), '%Y-%m-%d %H:%M:%S.%f')
+        return expire < datetime.now()
+
+    @property
+    def user_id(self) -> str:
+        return self._get_token_value('userId')
+
+    @property
+    def refresh_token(self) -> str:
+        return self._get_token_value('refreshToken')
+
+    @property
+    def access_token(self) -> str:
+        return self._get_token_value('accessToken')
+
+    @property
+    def summary(self) -> str:
+        if not self._token_raw:
+            self.logger.error('Not logged in.')
+            raise AuthenticationError()
+        return tabulate.tabulate([(k, v) for k, v in self._token_raw.items()
+                                  if k not in {'refreshToken', 'accessToken', 'tokenType'}],
+                                 tablefmt='plain')
+
+    def login(self) -> bool:
+        self.logger.info('Login')
+        try:
+            context = self._get_auth_context()
+            code = context.acquire_user_code(RESOURCE_ID, CLIENT_ID)
+            self.logger.debug(f'User code: {json.dumps(code, indent=2)}')
+            print(code['message'])
+
+            self._token_raw = context.acquire_token_with_device_code(RESOURCE_ID, code, CLIENT_ID)
+            self.logger.debug(f'Acquired token from authority {self._token_raw.get("_authority", "unknown")}.')
+            self._save_token()
+            print(f'Welcome, {self._get_token_value("givenName")}.')
+
+            return True
+        except IOError:
+            return False
+        except adal.AdalError:
+            self.logger.exception('Fail to authenticate.')
+            return False
+
+    def logout(self) -> None:
+        self.logger.info('Logout')
+        if self.has_login:
+            self._token_raw = None
+            if os.path.exists(TOKEN_FILE):
+                os.remove(TOKEN_FILE)
+
+    def refresh(self) -> bool:
+        try:
+            context = self._get_auth_context()
+            access_token = context.acquire_token_with_refresh_token(self.refresh_token, CLIENT_ID, RESOURCE_ID)
+            for token_key, token_value in access_token.items():
+                self._token_raw[token_key] = token_value
+            self._save_token()
+            return True
+        except (AuthenticationError, adal.AdalError):
+            self.logger.error(f'Fail to acquire new access token.')
+            return False
+
+    def _save_token(self) -> None:
+        try:
+            os.makedirs(CONFIG_DIR, exist_ok=True)
+            with open(TOKEN_FILE, 'w') as token_file:
+                token_file.write(json.dumps(self._token_raw, indent=2))
+        except IOError:
+            self.logger.exception(f'Fail to save the file {TOKEN_FILE}')
+            raise
+
+    @staticmethod
+    def _get_auth_context() -> adal.AuthenticationContext:
+        return adal.AuthenticationContext(AUTHORITY_URL, api_version=None)
+
+
+class A01Auth(requests.auth.AuthBase):  # pylint: disable=too-few-public-methods
+    def __init__(self):
+        self.logger = get_logger(__class__.__name__)
+        self.auth = AuthSettings()
+
+    def __call__(self, req: requests.Request):
+        if not self.auth.has_login:
+            self.logger.error('Credential is missing. Please login.')
+            sys.exit(1)
+
+        if self.auth.is_expired and not self.auth.refresh():
+            self.logger.error('Please login again.')
+            sys.exit(1)
+
+        req.headers['Authorization'] = self.auth.access_token
+        return req
 
 
 @a01.cli.cmd('login', desc='Log in with Microsoft account.')
-def login() -> None:
-    logger = get_logger(__name__)
+@a01.cli.arg('endpoint', help='Host name of the target A01 system.')
+def login(endpoint: str) -> None:
+    try:
+        requests.get(f'https://{endpoint}/healthy').raise_for_status()
+    except requests.HTTPError:
+        get_logger(__name__).error(f'Cannot reach endpoint https://{endpoint}/healthy')
+        sys.exit(1)
 
-    context = adal.AuthenticationContext(AUTHORITY_URL, api_version=None)
-    code = context.acquire_user_code(RESOURCE_ID, CLIENT_ID)
-    logger.debug(f'Acquired user code {json.dumps(code, indent=2)}')
-    print(code['message'])
+    config = A01Config()
+    config.endpoint = endpoint
+    if not config.save():
+        get_logger(__name__).error(f'Cannot read or write to file {CONFIG_FILE}')
+        sys.exit(1)
 
-    token = context.acquire_token_with_device_code(RESOURCE_ID, code, CLIENT_ID)
-    logger.debug(f'Acquired token with device code {json.dumps(token, indent=2)}')
-
-    os.makedirs(CONFIG_DIR, exist_ok=True)
-    with open(TOKEN_FILE, 'w') as token_file:
-        token_file.write(json.dumps(token, indent=2))
+    if AuthSettings().login():
+        sys.exit(0)
+    else:
+        sys.exit(1)
 
 
 @a01.cli.cmd('logout', desc='Log out - clear the credentials')
 def logout() -> None:
-    if os.path.exists(TOKEN_FILE):
-        os.remove(TOKEN_FILE)
+    AuthSettings().logout()
 
 
 @a01.cli.cmd('whoami', desc='Describe the current credential')
 def whoami() -> None:
-    if not os.path.exists(TOKEN_FILE):
+    try:
+        print(AuthSettings().summary)
+    except AuthenticationError:
         print('You need to login. Usage: a01 login.')
-        sys.exit(0)
-
-    with open(TOKEN_FILE) as token_file:
-        cred = json.load(token_file)
-
-    del cred['refreshToken']
-    del cred['accessToken']
-    del cred['tokenType']
-
-    cred = [{'Name': k, 'Value': v} for k, v in cred.items()]
-    print(tabulate.tabulate(cred))
 
 
 def get_user_id() -> str:
-    if not os.path.exists(TOKEN_FILE):
+    try:
+        return AuthSettings().user_id
+    except AuthenticationError:
         print('You need to login. Usage: a01 login.')
         sys.exit(1)
-
-    with open(TOKEN_FILE) as token_file:
-        cred = json.load(token_file)
-
-    return cred['userId']
