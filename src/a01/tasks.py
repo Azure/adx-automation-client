@@ -3,7 +3,7 @@ import json
 import tabulate
 
 import a01.cli
-from a01.common import get_store_uri, LOG_FILE, download_recording
+from a01.common import LOG_FILE, download_recording, A01Config
 from a01.communication import session
 
 
@@ -21,8 +21,11 @@ from a01.communication import session
              help='Show the details of the task.')
 def get_task(ids: [str], log: bool = False, recording: bool = False, recording_az_mode: bool = False,
              details: bool = False) -> None:
+    config = A01Config()
+    config.ensure_config()
+
     for task_id in ids:
-        resp = session.get(f'{get_store_uri()}/task/{task_id}')
+        resp = session.get(f'{config.endpoint_uri}/task/{task_id}')
         resp.raise_for_status()
         task = resp.json()
         view = [
