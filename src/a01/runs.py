@@ -130,9 +130,15 @@ def create_run(image: str,
     @functools.lru_cache(maxsize=1)
     def get_tasks_from_image() -> typing.List[dict]:
         docker_client = docker.from_env()
+
         try:
-            output = docker_client.containers.run(image=image, command=['python', '/app/collect_tests.py'],
-                                                  remove=True)
+            try:
+                output = docker_client.containers.run(image=image, command=['/app/get_index'], remove=True)
+            except (docker.errors.ContainerError, docker.errors.APIError):
+                # This form of test listing mechanism is going to retire
+                output = docker_client.containers.run(image=image, command=['python', '/app/collect_tests.py'],
+                                                      remove=True)
+
             tests = json.loads(output)
             if query:
                 tests = [t for t in tests if re.match(query, t['path'])]
