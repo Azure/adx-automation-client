@@ -2,7 +2,7 @@
 
 from setuptools import setup
 
-VERSION = "0.4.2"
+VERSION = "0.5.0"
 
 CLASSIFIERS = [
     'Development Status :: 4 - Beta',
@@ -19,7 +19,8 @@ DEPENDENCIES = [
     'PyYAML>=3.12',
     'coloredlogs>=8.0',
     'colorama>=0.3.9',
-    'adal>=0.5.0'
+    'adal>=0.5.0',
+    'docker~=3.0.0'
 ]
 
 setup(

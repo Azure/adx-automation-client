@@ -13,6 +13,8 @@ from subprocess import check_output, CalledProcessError
 
 import tabulate
 import yaml
+import docker
+import docker.errors
 from requests import HTTPError
 
 from a01.common import get_logger, download_recording, IS_WINDOWS, A01Config
@@ -127,19 +129,24 @@ def create_run(image: str,
 
     @functools.lru_cache(maxsize=1)
     def get_tasks_from_image() -> typing.List[dict]:
-        temp_container_name = base64.b32encode(os.urandom(12))[:-4].decode('utf-8')
-        run_cmd = f'docker run --name {temp_container_name} {image} python /app/collect_tests.py'
-        rm_cmd = f'docker rm {temp_container_name}'
+        docker_client = docker.from_env()
         try:
-            output = check_output(shlex.split(run_cmd, posix=not IS_WINDOWS), shell=IS_WINDOWS)
-            check_output(shlex.split(rm_cmd, posix=not IS_WINDOWS), shell=IS_WINDOWS)
+            output = docker_client.containers.run(image=image, command=['python', '/app/collect_tests.py'],
+                                                  remove=True)
             tests = json.loads(output)
             if query:
                 tests = [t for t in tests if re.match(query, t['path'])]
 
             return tests
-        except CalledProcessError:
-            logger.exception(f'Failed to list tests in image {image}.')
+
+        except docker.errors.ContainerError:
+            logger.exception('Fail to collect tests in the container.')
+            sys.exit(1)
+        except docker.errors.ImageNotFound:
+            logger.exception(f'Image {image} not found.')
+            sys.exit(1)
+        except docker.errors.APIError:
+            logger.exception('Docker operation failed.')
             sys.exit(1)
         except (json.JSONDecodeError, TypeError):
             logger.exception('Failed to parse the manifest as JSON.')
