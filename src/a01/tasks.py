@@ -1,10 +1,9 @@
 import json
 
-import tabulate
-
 import a01.cli
 from a01.common import LOG_FILE, download_recording, A01Config
 from a01.communication import session
+from a01.output import output_in_table
 
 
 @a01.cli.cmd('get task', desc='Retrieve tasks information.')
@@ -35,7 +34,7 @@ def get_task(ids: [str], log: bool = False, recording: bool = False, recording_a
             ('duration(ms)', task['result_details']['duration'])
         ]
 
-        print(tabulate.tabulate(view, tablefmt='plain'))
+        output_in_table(view, tablefmt='plain')
         if details:
             print()
             print(json.dumps(task, indent=2))
