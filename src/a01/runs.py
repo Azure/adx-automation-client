@@ -31,9 +31,9 @@ def get_runs() -> None:
     config = A01Config()
     resp = session.get(f'{config.endpoint_uri}/runs')
     resp.raise_for_status()
-    view = [(run['id'], run['name'], run['creation']) for run in resp.json()]
+    view = [(run['id'], run['name'], run['creation'], run['details'].get('remark', '')) for run in resp.json()]
     print()
-    print(tabulate.tabulate(view, headers=('id', 'name', 'creation')))
+    print(tabulate.tabulate(view, headers=('id', 'name', 'creation', 'remark')))
 
 
 @cmd('get run', desc='Retrieve a run')
@@ -362,9 +362,8 @@ def create_run(image: str,
 
 
 @cmd('delete run', desc='Delete a run as well as the tasks associate with it.')
-@arg('ids', help='Ids of the run to be deleted.', positional=True)
-def delete_run(ids: typing.List[str]) -> None:
+@arg('run_id', help='Ids of the run to be deleted.', positional=True)
+def delete_run(run_id: str) -> None:
     config = A01Config()
-    for each in ids:
-        resp = session.delete(f'{config.endpoint_uri}/run/{each}')
-        resp.raise_for_status()
+    resp = session.delete(f'{config.endpoint_uri}/run/{run_id}')
+    resp.raise_for_status()
