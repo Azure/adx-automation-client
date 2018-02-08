@@ -21,7 +21,7 @@ DEPENDENCIES = [
     'colorama>=0.3.9',
     'adal>=0.5.0',
     'docker~=3.0.0',
-    'kubernetes>=4.0.0'
+    'kubernetes~=4.0.0'
 ]
 
 setup(
