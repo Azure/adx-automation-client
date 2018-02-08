@@ -2,26 +2,25 @@ import datetime
 import base64
 import functools
 import json
-import shlex
 import sys
 import os
 import typing
-import tempfile
 import re
 from collections import defaultdict
-from subprocess import check_output, CalledProcessError
 
-import tabulate
-import yaml
 import docker
 import docker.errors
 from requests import HTTPError
+from kubernetes import config as kube_config
+from kubernetes import client as kube_client
 
-from a01.common import get_logger, download_recording, IS_WINDOWS, A01Config
+from a01.common import get_logger, download_recording, A01Config
 from a01.tasks import get_task
 from a01.cli import cmd, arg
 from a01.communication import session
 from a01.auth import get_user_id
+from a01.output import output_in_table
+from a01.jobs import AzureCliJob, AzureCliMonitorJob
 
 logger = get_logger(__name__)  # pylint: disable=invalid-name
 
@@ -32,8 +31,7 @@ def get_runs() -> None:
     resp = session.get(f'{config.endpoint_uri}/runs')
     resp.raise_for_status()
     view = [(run['id'], run['name'], run['creation'], run['details'].get('remark', '')) for run in resp.json()]
-    print()
-    print(tabulate.tabulate(view, headers=('id', 'name', 'creation', 'remark')))
+    output_in_table(view, headers=('id', 'name', 'creation', 'remark'))
 
 
 @cmd('get run', desc='Retrieve a run')
@@ -68,7 +66,7 @@ def get_run(run_id: str, log: bool = False, recording: bool = False, recording_a
         statuses[status] = statuses[status] + 1
         results[result] = results[result] + 1
 
-        if result != 'Passed':
+        if result != 'Passed' and status != 'initialized':
             failure.append(
                 (task['id'],
                  task['name'].rsplit('.')[-1],
@@ -82,10 +80,8 @@ def get_run(run_id: str, log: bool = False, recording: bool = False, recording_a
 
     summaries = [('Time', str(datetime.datetime.now())), ('Task', status_summary), ('Result', result_summary)]
 
-    print()
-    print(tabulate.tabulate(summaries, tablefmt='plain'))
-    print()
-    print(tabulate.tabulate(failure, headers=('id', 'name', 'status', 'result', 'agent', 'duration(ms)')))
+    output_in_table(summaries, tablefmt='plain')
+    output_in_table(failure, headers=('id', 'name', 'status', 'result', 'agent', 'duration(ms)'))
 
     if log:
         print()
@@ -188,6 +184,7 @@ def create_run(image: str,
             return resp.json()['id']
         except HTTPError:
             logger.exception('Failed to create run in the task store.')
+            logger.debug(resp.content)
             sys.exit(1)
         except (json.JSONDecodeError, TypeError):
             logger.exception('Failed to deserialize the response content.')
@@ -209,155 +206,22 @@ def create_run(image: str,
             sys.exit(1)
         return run_id
 
-    def config_job(run_id: str) -> dict:
-        environment_variables = [
-            {'name': 'ENV_POD_NAME', 'valueFrom': {'fieldRef': {'fieldPath': 'metadata.name'}}},
-            {'name': 'ENV_NODE_NAME', 'valueFrom': {'fieldRef': {'fieldPath': 'spec.nodeName'}}},
-            {'name': 'A01_DROID_RUN_ID', 'value': str(run_id)},
-            {'name': 'A01_STORE_NAME', 'value': 'task-store-web-service-internal'},
-            {'name': 'A01_INTERNAL_COMKEY',
-             'valueFrom': {'secretKeyRef': {'name': 'a01store-internal-communication-key', 'key': 'key'}}}
-        ]
-        if live:
-            environment_variables.append({'name': 'A01_RUN_LIVE', 'value': 'True'})
-            environment_variables.append(
-                {'name': 'A01_SP_USERNAME', 'valueFrom': {'secretKeyRef': {'name': sp_secret, 'key': 'username'}}})
-            environment_variables.append(
-                {'name': 'A01_SP_PASSWORD', 'valueFrom': {'secretKeyRef': {'name': sp_secret, 'key': 'password'}}})
-            environment_variables.append(
-                {'name': 'A01_SP_TENANT', 'valueFrom': {'secretKeyRef': {'name': sp_secret, 'key': 'tenant'}}})
-
-        return {
-            'apiVersion': 'batch/v1',
-            'kind': 'Job',
-            'metadata': {
-                'name': job_name,
-                'labels': {
-                    'run_id': str(run_id),
-                    'run_live': str(live)
-                }
-            },
-            'spec': {
-                'parallelism': parallelism,
-                'backoffLimit': 5,
-                'template': {
-                    'metadata': {
-                        'name': f'{job_name}-droid',
-                        'labels': {
-                            'run_id': str(run_id),
-                            'run_live': str(live)
-                        }
-                    },
-                    'spec': {
-                        'containers': [{
-                            'name': 'droid',
-                            'image': image,
-                            'command': ['python', '/app/job.py'],
-                            'volumeMounts': [
-                                {'name': 'azure-storage', 'mountPath': '/mnt/storage'}
-                            ],
-                            'env': environment_variables
-                        }],
-                        'imagePullSecrets': [
-                            {'name': 'azureclidev-acr'}
-                        ],
-                        'restartPolicy': 'Never',
-                        'volumes': [{
-                            'name': 'azure-storage',
-                            'azureFile': {
-                                'secretName': storage_secret,
-                                'shareName': 'k8slog',
-                            }}]
-                    }
-                }
-            }
-        }
-
-    def config_monitor_job(run_id: str) -> dict:
-        environments = [{'name': 'A01_MONITOR_RUN_ID', 'value': str(run_id)},
-                        {'name': 'A01_MONITOR_INTERVAL', 'value': '30'},
-                        {'name': 'A01_STORE_NAME', 'value': 'task-store-web-service-internal'},
-                        {'name': 'A01_INTERNAL_COMKEY', 'valueFrom': {
-                            'secretKeyRef': {'name': 'a01store-internal-communication-key', 'key': 'key'}}}]
-        if email or remark.lower() == 'official':
-            environments.extend([
-                {'name': 'A01_REPORT_SMTP_SERVER',
-                 'valueFrom': {'secretKeyRef': {'name': 'azurecli-email', 'key': 'server'}}},
-                {'name': 'A01_REPORT_SENDER_ADDRESS',
-                 'valueFrom': {'secretKeyRef': {'name': 'azurecli-email', 'key': 'username'}}},
-                {'name': 'A01_REPORT_SENDER_PASSWORD',
-                 'valueFrom': {'secretKeyRef': {'name': 'azurecli-email', 'key': 'password'}}}])
-
-            if remark.lower() == 'official':
-                environments.append({'name': 'A01_REPORT_RECEIVER',
-                                     'valueFrom': {
-                                         'configMapKeyRef': {'name': 'azurecli-config', 'key': 'official.email'}}})
-            elif email:
-                environments.append({'name': 'A01_REPORT_RECEIVER', 'value': get_user_id()})
-
-        return {
-            "apiVersion": "batch/v1",
-            "kind": "Job",
-            "metadata": {
-                "name": f'{job_name}-monitor',
-                "labels": {
-                    'run_id': str(run_id)
-                }
-            },
-            "spec": {
-                'template': {
-                    'metadata': {
-                        'name': f'{job_name}-monitor-pod',
-                        'labels': {
-                            'run_id': str(run_id)
-                        }
-                    },
-                    'spec': {
-                        'containers': [{
-                            'name': 'monitor',
-                            'image': 'azureclidev.azurecr.io/a01monitor:latest',
-                            'env': environments
-                        }],
-                        'imagePullSecrets': [
-                            {'name': 'azureclidev-acr'}
-                        ],
-                        'restartPolicy': 'Never'
-                    }
-                }
-            }
-        }
-
-    def post_job(config: dict) -> None:
-        _, config_file = tempfile.mkstemp(text=True)
-        with open(config_file, 'w') as config_file_handle:
-            yaml.dump(config, config_file_handle, default_flow_style=False)
-        logger.info(f'Temp config file saved at {config_file}')
-
-        try:
-            check_output(shlex.split(f'kubectl create -f {config_file} --namespace az', posix=not IS_WINDOWS),
-                         shell=IS_WINDOWS)
-        except CalledProcessError:
-            logger.exception(f'Failed to create job.')
-            sys.exit(1)
-
     selected_tasks = select_tasks(path_prefix)
-
-    run_name = post_tasks(selected_tasks, post_run(config.endpoint_uri), config.endpoint_uri) if not dry_run else '555'
-
-    job_config = config_job(run_name)
-    monitor_config = config_monitor_job(run_name)
 
     if dry_run:
         for index, each in enumerate(selected_tasks):
             print(f' {index + 1}\t{each["path"]}')
-
-        print()
-        print(yaml.dump(job_config, default_flow_style=False))
-        print()
-        print(yaml.dump(monitor_config, default_flow_style=False))
     else:
-        post_job(job_config)
-        post_job(monitor_config)
+        run_name = post_tasks(selected_tasks, post_run(config.endpoint_uri), config.endpoint_uri)
+        kube_config.load_kube_config()
+        api = kube_client.BatchV1Api()
+        test_job = AzureCliJob(name=job_name, image=image, parallelism=parallelism, run_id=run_name, live=live,
+                               storage_secret_name=storage_secret, service_principal_secret_name=sp_secret).get_body()
+        monitor_job = AzureCliMonitorJob(name=job_name, image='azureclidev.azurecr.io/a01monitor:latest',
+                                         run_id=run_name, email=get_user_id() if email else None,
+                                         official=remark.lower() == 'official').get_body()
+        api.create_namespaced_job(namespace='az', body=test_job)
+        api.create_namespaced_job(namespace='az', body=monitor_job)
         print(json.dumps({'run': run_name, 'job': job_name, 'monitor': f'{job_name}-monitor'}, indent=2))
 
 
