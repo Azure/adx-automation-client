@@ -79,11 +79,13 @@ def get_run(run_id: str, log: bool = False, recording: bool = False, recording_a
 @arg('remark', help='The addition information regarding to this run. Specify "official" will trigger an email '
                     'notification to the entire team after the job finishes.')
 @arg('email', help='Send an email to you after the job finishes.')
+@arg('skip_kube', option=['--skip-kubernetes'], help='Create tasks in task store without schedule Kubernetes jobs. '
+                                                     'It is used mainly in testing scenarios.')
 # pylint: disable=too-many-arguments
 def create_run(image: str,
                path_prefix: str = None, from_failures: str = None, dry_run: bool = False, live: bool = False,
                parallelism: int = 3, sp_secret: str = 'azurecli-live-sp', storage_secret: str = 'azurecli-test-storage',
-               query: str = None, remark: str = None, email: bool = False) -> None:
+               query: str = None, remark: str = None, email: bool = False, skip_kube: bool = False) -> None:
     job_name = f'azurecli-test-{base64.b32encode(os.urandom(12)).decode("utf-8").lower()}'.rstrip('=')
     remark = remark or ''
     try:
@@ -120,6 +122,9 @@ def create_run(image: str,
                  candidates]
         task_collection = a01.models.TaskCollection(tasks=tasks, run_id=run_name)
         task_collection.post()
+
+        if skip_kube:
+            sys.exit(0)
 
         kube_config.load_kube_config()
         api = kube_client.BatchV1Api()
