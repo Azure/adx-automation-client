@@ -50,7 +50,7 @@ def get_run(run_id: str, log: bool = False, recording: bool = False, recording_a
                 output_in_table(zip_longest(failure.get_table_header(), failure.get_table_view()), tablefmt='plain')
                 output_in_table(failure.get_log_content(), tablefmt='plain')
 
-        output_in_table(tasks.get_summary(), tablefmt='plain')
+            output_in_table(tasks.get_summary(), tablefmt='plain')
 
         if recording:
             print()
