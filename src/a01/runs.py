@@ -14,6 +14,7 @@ from requests import HTTPError
 from kubernetes import config as kube_config
 from kubernetes import client as kube_client
 
+import a01.models
 from a01.common import get_logger, download_recording, A01Config
 from a01.tasks import get_task
 from a01.cli import cmd, arg
@@ -21,6 +22,7 @@ from a01.communication import session
 from a01.auth import get_user_id
 from a01.output import output_in_table
 from a01.jobs import AzureCliJob, AzureCliMonitorJob
+from a01.docker import DroidImage
 
 logger = get_logger(__name__)  # pylint: disable=invalid-name
 
@@ -123,96 +125,41 @@ def create_run(image: str,
     config = A01Config()
     config.ensure_config()
 
-    @functools.lru_cache(maxsize=1)
-    def get_tasks_from_image() -> typing.List[dict]:
-        docker_client = docker.from_env()
+    try:
+        droid_image = DroidImage(image)
+        candidates = droid_image.list_tasks(query=query)
 
-        try:
-            try:
-                output = docker_client.containers.run(image=image, command=['/app/get_index'], remove=True)
-            except (docker.errors.ContainerError, docker.errors.APIError):
-                # This form of test listing mechanism is going to retire
-                output = docker_client.containers.run(image=image, command=['python', '/app/collect_tests.py'],
-                                                      remove=True)
-
-            tests = json.loads(output)
-            if query:
-                tests = [t for t in tests if re.match(query, t['path'])]
-
-            return tests
-
-        except docker.errors.ContainerError:
-            logger.exception('Fail to collect tests in the container.')
-            sys.exit(1)
-        except docker.errors.ImageNotFound:
-            logger.exception(f'Image {image} not found.')
-            sys.exit(1)
-        except docker.errors.APIError:
-            logger.exception('Docker operation failed.')
-            sys.exit(1)
-        except (json.JSONDecodeError, TypeError):
-            logger.exception('Failed to parse the manifest as JSON.')
-            sys.exit(1)
-
-    def select_tasks(prefix: str) -> typing.List[dict]:
-        candidates = get_tasks_from_image()
-
-        if prefix:
-            candidates = [candidate for candidate in candidates if candidate['path'].startswith(prefix)]
+        if path_prefix:
+            candidates = [candidate for candidate in candidates if candidate['path'].startswith(path_prefix)]
 
         if from_failures:
             all_tasks = session.get(f'{config.endpoint_uri}/run/{from_failures}/tasks').json()
             failed_test_paths = set([task['settings']['path'] for task in all_tasks if task['result'] != 'Passed'])
             candidates = [candidate for candidate in candidates if candidate['path'] in failed_test_paths]
 
-        return candidates
+        if dry_run:
+            for index, each in enumerate(candidates, start=1):
+                print(f' {index}\t{each["path"]}')
 
-    def post_run(store_uri: str) -> str:
-        try:
-            resp = session.post(f'{store_uri}/run', json={
-                'name': f'Azure CLI Test @ {image}',
-                'settings': {
-                    'droid_image': image,
-                },
-                'details': {
-                    'creator': os.environ.get('USER', os.environ.get('USERNAME', 'Unknown')),
-                    'client': 'A01 CLI',
-                    'live': str(live),
-                    'remark': remark
-                }
-            })
-            return resp.json()['id']
-        except HTTPError:
-            logger.exception('Failed to create run in the task store.')
-            logger.debug(resp.content)
-            sys.exit(1)
-        except (json.JSONDecodeError, TypeError):
-            logger.exception('Failed to deserialize the response content.')
-            sys.exit(1)
+            sys.exit(0)
 
-    def post_tasks(tasks: typing.List[dict], run_id: str, store_uri: str) -> str:
-        try:
-            task_payload = [
-                {
-                    'name': f'Test: {task["path"]}',
-                    'annotation': image,
-                    'settings': {
-                        'path': task['path'],
-                    }
-                } for task in tasks]
-            session.post(f'{store_uri}/run/{run_id}/tasks', json=task_payload).raise_for_status()
-        except HTTPError:
-            logger.exception('Failed to create tasks in the task store.')
-            sys.exit(1)
-        return run_id
+        run_model = a01.models.Run(name=f'Azure CLI Test @ {image}',
+                                   settings={
+                                       'droid_image': image,
+                                   },
+                                   details={
+                                       'creator': os.environ.get('USER', os.environ.get('USERNAME', 'Unknown')),
+                                       'client': 'A01 CLI',
+                                       'live': str(live),
+                                       'remark': remark
+                                   })
+        run_name = run_model.post(endpoint=config.endpoint_uri)
 
-    selected_tasks = select_tasks(path_prefix)
+        tasks = [a01.models.Task(name=f'Test: {c["path"]}', annotation=image, settings={'path': c['path']}) for c in
+                 candidates]
+        task_collection = a01.models.TaskCollection(tasks=tasks, run_id=run_name)
+        task_collection.post(endpoint=config.endpoint_uri)
 
-    if dry_run:
-        for index, each in enumerate(selected_tasks):
-            print(f' {index + 1}\t{each["path"]}')
-    else:
-        run_name = post_tasks(selected_tasks, post_run(config.endpoint_uri), config.endpoint_uri)
         kube_config.load_kube_config()
         api = kube_client.BatchV1Api()
         test_job = AzureCliJob(name=job_name, image=image, parallelism=parallelism, run_id=run_name, live=live,
@@ -223,6 +170,9 @@ def create_run(image: str,
         api.create_namespaced_job(namespace='az', body=test_job)
         api.create_namespaced_job(namespace='az', body=monitor_job)
         print(json.dumps({'run': run_name, 'job': job_name, 'monitor': f'{job_name}-monitor'}, indent=2))
+    except ValueError as ex:
+        logger.error(ex)
+        sys.exit(1)
 
 
 @cmd('delete run', desc='Delete a run as well as the tasks associate with it.')
