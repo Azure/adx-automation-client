@@ -74,7 +74,7 @@ class A01Config(configparser.ConfigParser):  # pylint: disable=too-many-ancestor
 
     def ensure_config(self) -> None:
         if not os.path.isfile(CONFIG_FILE) or 'endpoint' not in self:
-            self.logger.error(f'Cannot load configuration file: {CONFIG_FILE}.')
+            self.logger.error(f'Cannot load configuration file: {CONFIG_FILE}. Run a01 login --endpoint <ENDPOINT>.')
             sys.exit(1)
 
     @property

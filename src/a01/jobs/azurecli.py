@@ -50,11 +50,11 @@ class AzureCliJob(JobTemplate):
         return [
             V1EnvVar(name='A01_RUN_LIVE', value='True'),
             V1EnvVar(name='A01_SP_USERNAME',
-                     value=V1EnvVarSource(secret_key_ref=V1SecretKeySelector(name=self._sp, key='username'))),
+                     value_from=V1EnvVarSource(secret_key_ref=V1SecretKeySelector(name=self._sp, key='username'))),
             V1EnvVar(name='A01_SP_PASSWORD',
-                     value=V1EnvVarSource(secret_key_ref=V1SecretKeySelector(name=self._sp, key='password'))),
+                     value_from=V1EnvVarSource(secret_key_ref=V1SecretKeySelector(name=self._sp, key='password'))),
             V1EnvVar(name='A01_SP_TENANT',
-                     value=V1EnvVarSource(secret_key_ref=V1SecretKeySelector(name=self._sp, key='tenant')))]
+                     value_from=V1EnvVarSource(secret_key_ref=V1SecretKeySelector(name=self._sp, key='tenant')))]
 
 
 class AzureCliMonitorJob(JobTemplate):
@@ -88,15 +88,15 @@ class AzureCliMonitorJob(JobTemplate):
             secret = 'azurecli-email'
             envs.extend([
                 V1EnvVar(name='A01_REPORT_SMTP_SERVER',
-                         value=V1EnvVarSource(secret_key_ref=V1SecretKeySelector(name=secret, key='server'))),
+                         value_from=V1EnvVarSource(secret_key_ref=V1SecretKeySelector(name=secret, key='server'))),
                 V1EnvVar(name='A01_REPORT_SENDER_ADDRESS',
-                         value=V1EnvVarSource(secret_key_ref=V1SecretKeySelector(name=secret, key='username'))),
+                         value_from=V1EnvVarSource(secret_key_ref=V1SecretKeySelector(name=secret, key='username'))),
                 V1EnvVar(name='A01_REPORT_SENDER_PASSWORD',
-                         value=V1EnvVarSource(secret_key_ref=V1SecretKeySelector(name=secret, key='password')))])
+                         value_from=V1EnvVarSource(secret_key_ref=V1SecretKeySelector(name=secret, key='password')))])
 
             if self.official:
                 envs.append(V1EnvVar(name='A01_REPORT_RECEIVER',
-                                     value=V1EnvVarSource(
+                                     value_from=V1EnvVarSource(
                                          config_map_key_ref=V1ConfigMapKeySelector(name='azurecli-config',
                                                                                    key='official.email'))))
             elif self.email:
