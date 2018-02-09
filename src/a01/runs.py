@@ -4,6 +4,7 @@ import sys
 import os
 from itertools import zip_longest
 
+import colorama
 from kubernetes import config as kube_config
 from kubernetes import client as kube_client
 
@@ -48,7 +49,7 @@ def get_run(run_id: str, log: bool = False, recording: bool = False, recording_a
         if log:
             for failure in tasks.get_failed_tasks():
                 output_in_table(zip_longest(failure.get_table_header(), failure.get_table_view()), tablefmt='plain')
-                output_in_table(failure.get_log_content(), tablefmt='plain')
+                output_in_table(failure.get_log_content(), tablefmt='plain', foreground_color=colorama.Fore.CYAN)
 
             output_in_table(tasks.get_summary(), tablefmt='plain')
 

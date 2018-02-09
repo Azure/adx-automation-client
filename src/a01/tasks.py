@@ -1,5 +1,7 @@
 from itertools import zip_longest
 
+import colorama
+
 import a01.cli
 import a01.models
 from a01.output import output_in_table
@@ -22,7 +24,7 @@ def get_task(ids: [str], log: bool = False, recording: bool = False, recording_a
 
         if log:
             print()
-            output_in_table(task.get_log_content(), tablefmt='plain')
+            output_in_table(task.get_log_content(), tablefmt='plain', foreground_color=colorama.Fore.CYAN)
 
         if recording:
             print()
