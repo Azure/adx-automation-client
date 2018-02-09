@@ -1,22 +1,14 @@
-import datetime
 import base64
-import functools
 import json
 import sys
 import os
-import typing
-import re
-from collections import defaultdict
+from itertools import zip_longest
 
-import docker
-import docker.errors
-from requests import HTTPError
 from kubernetes import config as kube_config
 from kubernetes import client as kube_client
 
 import a01.models
-from a01.common import get_logger, download_recording, A01Config
-from a01.tasks import get_task
+from a01.common import get_logger, A01Config
 from a01.cli import cmd, arg
 from a01.communication import session
 from a01.auth import get_user_id
@@ -29,11 +21,12 @@ logger = get_logger(__name__)  # pylint: disable=invalid-name
 
 @cmd('get runs', desc='Retrieve the runs.')
 def get_runs() -> None:
-    config = A01Config()
-    resp = session.get(f'{config.endpoint_uri}/runs')
-    resp.raise_for_status()
-    view = [(run['id'], run['name'], run['creation'], run['details'].get('remark', '')) for run in resp.json()]
-    output_in_table(view, headers=('id', 'name', 'creation', 'remark'))
+    try:
+        runs = a01.models.RunCollection.get()
+        output_in_table(runs.get_table_view(), headers=runs.get_table_header())
+    except ValueError as err:
+        logger.error(err)
+        sys.exit(1)
 
 
 @cmd('get run', desc='Retrieve a run')
@@ -47,55 +40,26 @@ def get_runs() -> None:
      help='When download the recording files the files are arranged in directory structure mimic Azure CLI '
           'source code.')
 def get_run(run_id: str, log: bool = False, recording: bool = False, recording_az_mode: bool = False) -> None:
-    config = A01Config()
-    resp = session.get(f'{config.endpoint_uri}/run/{run_id}/tasks')
-    if resp.status_code == 404:
-        print(f'Run {run_id} is not found.')
+    try:
+        tasks = a01.models.TaskCollection.get(run_id=run_id)
+        output_in_table(tasks.get_table_view(), headers=tasks.get_table_header())
+        output_in_table(tasks.get_summary(), tablefmt='plain')
+
+        if log:
+            for failure in tasks.get_failed_tasks():
+                output_in_table(zip_longest(failure.get_table_header(), failure.get_table_view()), tablefmt='plain')
+                output_in_table(failure.get_log_content(), tablefmt='plain')
+
+        output_in_table(tasks.get_summary(), tablefmt='plain')
+
+        if recording:
+            print()
+            print('Download recordings ...')
+            for task in tasks.tasks:
+                task.download_recording(recording_az_mode)
+    except ValueError as err:
+        logger.error(err)
         sys.exit(1)
-
-    resp.raise_for_status()
-    tasks = resp.json()
-
-    statuses = defaultdict(lambda: 0)
-    results = defaultdict(lambda: 0)
-
-    failure = []
-
-    for task in tasks:
-        status = task['status']
-        result = task['result']
-
-        statuses[status] = statuses[status] + 1
-        results[result] = results[result] + 1
-
-        if result != 'Passed' and status != 'initialized':
-            failure.append(
-                (task['id'],
-                 task['name'].rsplit('.')[-1],
-                 task['status'],
-                 task['result'],
-                 (task.get('result_details') or dict()).get('agent'),
-                 (task.get('result_details') or dict()).get('duration')))
-
-    status_summary = ' | '.join([f'{status_name}: {count}' for status_name, count in statuses.items()])
-    result_summary = ' | '.join([f'{result or "Not run"}: {count}' for result, count in results.items()])
-
-    summaries = [('Time', str(datetime.datetime.now())), ('Task', status_summary), ('Result', result_summary)]
-
-    output_in_table(summaries, tablefmt='plain')
-    output_in_table(failure, headers=('id', 'name', 'status', 'result', 'agent', 'duration(ms)'))
-
-    if log:
-        print()
-        print('Task details:')
-        print()
-        get_task(ids=[f[0] for f in failure], log=True)
-
-    if recording:
-        print()
-        print('Download recordings ...')
-        for task in tasks:
-            download_recording(task, recording_az_mode)
 
 
 @cmd('create run', desc='Create a new run.')
@@ -115,16 +79,13 @@ def get_run(run_id: str, log: bool = False, recording: bool = False, recording_a
 @arg('remark', help='The addition information regarding to this run. Specify "official" will trigger an email '
                     'notification to the entire team after the job finishes.')
 @arg('email', help='Send an email to you after the job finishes.')
-# pylint: disable=too-many-arguments, too-many-locals
+# pylint: disable=too-many-arguments
 def create_run(image: str,
                path_prefix: str = None, from_failures: str = None, dry_run: bool = False, live: bool = False,
                parallelism: int = 3, sp_secret: str = 'azurecli-live-sp', storage_secret: str = 'azurecli-test-storage',
                query: str = None, remark: str = None, email: bool = False) -> None:
     job_name = f'azurecli-test-{base64.b32encode(os.urandom(12)).decode("utf-8").lower()}'.rstrip('=')
     remark = remark or ''
-    config = A01Config()
-    config.ensure_config()
-
     try:
         droid_image = DroidImage(image)
         candidates = droid_image.list_tasks(query=query)
@@ -133,9 +94,9 @@ def create_run(image: str,
             candidates = [candidate for candidate in candidates if candidate['path'].startswith(path_prefix)]
 
         if from_failures:
-            all_tasks = session.get(f'{config.endpoint_uri}/run/{from_failures}/tasks').json()
-            failed_test_paths = set([task['settings']['path'] for task in all_tasks if task['result'] != 'Passed'])
-            candidates = [candidate for candidate in candidates if candidate['path'] in failed_test_paths]
+            failed_tasks = set(
+                task.settings['path'] for task in a01.models.TaskCollection.get(from_failures).get_failed_tasks())
+            candidates = [candidate for candidate in candidates if candidate['path'] in failed_tasks]
 
         if dry_run:
             for index, each in enumerate(candidates, start=1):
@@ -153,12 +114,12 @@ def create_run(image: str,
                                        'live': str(live),
                                        'remark': remark
                                    })
-        run_name = run_model.post(endpoint=config.endpoint_uri)
+        run_name = run_model.post()
 
         tasks = [a01.models.Task(name=f'Test: {c["path"]}', annotation=image, settings={'path': c['path']}) for c in
                  candidates]
         task_collection = a01.models.TaskCollection(tasks=tasks, run_id=run_name)
-        task_collection.post(endpoint=config.endpoint_uri)
+        task_collection.post()
 
         kube_config.load_kube_config()
         api = kube_client.BatchV1Api()

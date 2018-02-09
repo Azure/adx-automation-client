@@ -3,9 +3,7 @@ import os
 import logging
 import configparser
 
-import requests
 import coloredlogs
-
 
 KUBE_STORE_NAME = 'task-store-web-service'
 
@@ -25,35 +23,11 @@ TOKEN_FILE = os.path.join(CONFIG_DIR, 'token.json')
 
 IS_WINDOWS = sys.platform.lower() in ['windows', 'win32']
 
-
 coloredlogs.install(level=os.environ.get('A01_DEBUG', 'ERROR'))
 
 
 def get_logger(name: str) -> logging.Logger:
     return logging.getLogger(name)
-
-
-def download_recording(task: dict, az_mode: bool) -> None:
-    recording_path = LOG_FILE.format(f'{task["run_id"]}/recording_{task["id"]}.yaml')
-    resp = requests.get(recording_path)
-    if resp.status_code != 200:
-        return
-
-    path_paths = task['settings']['path'].split('.')
-    if az_mode:
-        module_name = path_paths[3]
-        method_name = path_paths[-1]
-        profile_name = path_paths[-4]
-        recording_path = os.path.join('recording', f'azure-cli-{module_name}', 'azure', 'cli', 'command_module',
-                                      module_name, 'tests', profile_name, 'recordings', f'{method_name}.yaml')
-    else:
-        path_paths[-1] = path_paths[-1] + '.yaml'
-        path_paths.insert(0, 'recording')
-        recording_path = os.path.join(*path_paths)
-
-    os.makedirs(os.path.dirname(recording_path), exist_ok=True)
-    with open(recording_path, 'wb') as recording_file:
-        recording_file.write(resp.content)
 
 
 class A01Config(configparser.ConfigParser):  # pylint: disable=too-many-ancestors

@@ -13,8 +13,8 @@ from a01.jobs.base_template import JobTemplate
 
 
 class AzureCliJob(JobTemplate):
-    def __init__(self, name: str, image: str, parallelism: int, run_id: str, storage_secret_name: str,
-                 service_principal_secret_name: str, live: bool = False) -> None:
+    def __init__(self, name: str, image: str, parallelism: int,  # pylint: disable=too-many-arguments
+                 run_id: str, storage_secret_name: str, service_principal_secret_name: str, live: bool = False) -> None:
         logger = get_logger(AzureCliJob.__class__.__name__)
 
         if not storage_secret_name:
@@ -58,8 +58,8 @@ class AzureCliJob(JobTemplate):
 
 
 class AzureCliMonitorJob(JobTemplate):
-    def __init__(self, name: str, image: str, run_id: str, interval: int = 30, email: str = None,
-                 official: bool = False) -> None:
+    def __init__(self, name: str,  # pylint: disable=too-many-arguments
+                 image: str, run_id: str, interval: int = 30, email: str = None, official: bool = False) -> None:
         self.interval = interval
         self.email = email
         self.official = official
