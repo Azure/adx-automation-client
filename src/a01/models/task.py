@@ -56,7 +56,7 @@ class Task(object):  # pylint: disable=too-many-instance-attributes
         result = Task(name=data['name'], annotation=data['annotation'], settings=data['settings'])
         result.id = str(data['id'])
         result.status = data['status']
-        result.result_details = data['result_details']
+        result.result_details = data['result_details'] or {}
         result.result = data['result']
         result.duration = data['duration']
         result.run_id = str(data['run_id'])
