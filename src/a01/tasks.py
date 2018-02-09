@@ -1,8 +1,7 @@
-import json
+from itertools import zip_longest
 
 import a01.cli
-from a01.common import LOG_FILE, download_recording, A01Config
-from a01.communication import session
+import a01.models
 from a01.output import output_in_table
 
 
@@ -16,39 +15,17 @@ from a01.output import output_in_table
 @a01.cli.arg('recording_az_mode', option=['--az-mode'],
              help='When download the recording files the files are arranged in directory structure mimic Azure CLI '
                   'source code.')
-@a01.cli.arg('details', option=('-d', '--details'),
-             help='Show the details of the task.')
-def get_task(ids: [str], log: bool = False, recording: bool = False, recording_az_mode: bool = False,
-             details: bool = False) -> None:
-    config = A01Config()
-    config.ensure_config()
-
+def get_task(ids: [str], log: bool = False, recording: bool = False, recording_az_mode: bool = False) -> None:
     for task_id in ids:
-        resp = session.get(f'{config.endpoint_uri}/task/{task_id}')
-        resp.raise_for_status()
-        task = resp.json()
-        view = [
-            ('id', task['id']),
-            ('result', task['result']),
-            ('test', task['settings']['path']),
-            ('duration(ms)', task['result_details']['duration'])
-        ]
-
-        output_in_table(view, tablefmt='plain')
-        if details:
-            print()
-            print(json.dumps(task, indent=2))
+        task = a01.models.Task.get(task_id=task_id)
+        output_in_table(zip_longest(task.get_table_header(), task.get_table_view()), tablefmt='plain')
 
         if log:
-            log_path = LOG_FILE.format(f'{task["run_id"]}/task_{task_id}.log')
             print()
-            import requests
-            for index, line in enumerate(requests.get(log_path).content.decode('utf-8').split('\n')):
-                print(f' {index}\t{line}')
+            output_in_table(task.get_log_content(), tablefmt='plain')
 
         if recording:
             print()
-            download_recording(task, recording_az_mode)
+            task.download_recording(recording_az_mode)
 
-        print()
         print()

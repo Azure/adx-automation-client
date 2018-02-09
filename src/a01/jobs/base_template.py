@@ -15,7 +15,7 @@ from kubernetes.client.models.v1_object_field_selector import V1ObjectFieldSelec
 from kubernetes.client.models.v1_secret_key_selector import V1SecretKeySelector
 
 
-class JobTemplate(abc.ABC):
+class JobTemplate(abc.ABC):  # pylint: disable=too-many-instance-attributes
     def __init__(self, name: str, image: str, parallelism: Optional[int], run_id: str) -> None:
         super(JobTemplate, self).__init__()
         self.name = name
@@ -85,7 +85,7 @@ class JobTemplate(abc.ABC):
     def get_volumes(self) -> Optional[List[V1Volume]]:
         return list(self.volumes.values()) if self.volumes else None
 
-    def get_default_environment_variables(self) -> List[V1EnvVar]:
+    def get_default_environment_variables(self) -> List[V1EnvVar]:  # pylint: disable=invalid-name
         return [
             V1EnvVar(name='ENV_POD_NAME',
                      value_from=V1EnvVarSource(field_ref=V1ObjectFieldSelector(field_path='metadata.name'))),
