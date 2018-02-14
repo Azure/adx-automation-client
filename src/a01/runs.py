@@ -14,7 +14,7 @@ from a01.cli import cmd, arg
 from a01.communication import session
 from a01.auth import get_user_id
 from a01.output import output_in_table
-from a01.jobs import AzureCliJob, AzureCliMonitorJob
+from a01.jobs import JobTemplate, MonitorTemplate
 from a01.docker import DroidImage
 
 logger = get_logger(__name__)  # pylint: disable=invalid-name
@@ -37,13 +37,15 @@ def get_runs() -> None:
      help='Download the recording files in recording directory at current working directory. The recordings '
           'are flatten with the full test path as the file name if --az-mode is not specified. If --az-mode is '
           'set, the recording files are arranged in directory structure mimic Azure CLI source code.')
+@arg('show_all', option=['--show-all'], help='Show all the tasks results.')
 @arg('recording_az_mode', option=['--az-mode'],
      help='When download the recording files the files are arranged in directory structure mimic Azure CLI '
           'source code.')
-def get_run(run_id: str, log: bool = False, recording: bool = False, recording_az_mode: bool = False) -> None:
+def get_run(run_id: str, log: bool = False, recording: bool = False, recording_az_mode: bool = False,
+            show_all: bool = False) -> None:
     try:
         tasks = a01.models.TaskCollection.get(run_id=run_id)
-        output_in_table(tasks.get_table_view(), headers=tasks.get_table_header())
+        output_in_table(tasks.get_table_view(failed=not show_all), headers=tasks.get_table_header())
         output_in_table(tasks.get_summary(), tablefmt='plain')
 
         if log:
@@ -72,21 +74,18 @@ def get_run(run_id: str, log: bool = False, recording: bool = False, recording_a
 @arg('from_failures', option=['--from-failures'], help='Create the run base on the failed tasks of another run')
 @arg('path_prefix', option=['--prefix'], help='Filter the task base on the test path prefix')
 @arg('live', help='Run test live')
-@arg('sp_secret', option=('--sp', '--service-principal-secret'),
-     help='The kubernete secret represents the service principal for live test.')
-@arg('storage_secret', option=('--storage', '--log-storage-secret'),
-     help='The kubernete secret represents the Azure Storage Account credential for logging')
 @arg('query', help='The regular expression used to query the tests.')
 @arg('remark', help='The addition information regarding to this run. Specify "official" will trigger an email '
                     'notification to the entire team after the job finishes.')
 @arg('email', help='Send an email to you after the job finishes.')
 @arg('skip_kube', option=['--skip-kubernetes'], help='Create tasks in task store without schedule Kubernetes jobs. '
                                                      'It is used mainly in testing scenarios.')
+@arg('secret', help='The name of the secret to be used. Default to the image\'s a01.product label.')
 # pylint: disable=too-many-arguments
 def create_run(image: str,
                path_prefix: str = None, from_failures: str = None, dry_run: bool = False, live: bool = False,
-               parallelism: int = 3, sp_secret: str = 'azurecli-live-sp', storage_secret: str = 'azurecli-test-storage',
-               query: str = None, remark: str = None, email: bool = False, skip_kube: bool = False) -> None:
+               parallelism: int = 3, query: str = None, remark: str = None, email: bool = False,
+               skip_kube: bool = False, secret: str = None) -> None:
     job_name = f'azurecli-test-{base64.b32encode(os.urandom(12)).decode("utf-8").lower()}'.rstrip('=')
     remark = remark or ''
     try:
@@ -94,16 +93,16 @@ def create_run(image: str,
         candidates = droid_image.list_tasks(query=query)
 
         if path_prefix:
-            candidates = [candidate for candidate in candidates if candidate['path'].startswith(path_prefix)]
+            candidates = [c for c in candidates if c['classifier']['identifier'].startswith(path_prefix)]
 
         if from_failures:
             failed_tasks = set(
-                task.settings['path'] for task in a01.models.TaskCollection.get(from_failures).get_failed_tasks())
-            candidates = [candidate for candidate in candidates if candidate['path'] in failed_tasks]
+                task.settings['identifier'] for task in a01.models.TaskCollection.get(from_failures).get_failed_tasks())
+            candidates = [c for c in candidates if c['classifier']['identifier'] in failed_tasks]
 
         if dry_run:
             for index, each in enumerate(candidates, start=1):
-                print(f' {index}\t{each["path"]}')
+                print(f' {index}\t{each["classifier"]["identifier"]}')
 
             sys.exit(0)
 
@@ -119,7 +118,7 @@ def create_run(image: str,
                                    })
         run_name = run_model.post()
 
-        tasks = [a01.models.Task(name=f'Test: {c["path"]}', annotation=image, settings={'path': c['path']}) for c in
+        tasks = [a01.models.Task(name=f'Test: {c["classifier"]["identifier"]}', annotation=image, settings=c) for c in
                  candidates]
         task_collection = a01.models.TaskCollection(tasks=tasks, run_id=run_name)
         task_collection.post()
@@ -129,14 +128,13 @@ def create_run(image: str,
 
         kube_config.load_kube_config()
         api = kube_client.BatchV1Api()
-        test_job = AzureCliJob(name=job_name, image=image, parallelism=parallelism, run_id=run_name, live=live,
-                               storage_secret_name=storage_secret, service_principal_secret_name=sp_secret).get_body()
-        monitor_job = AzureCliMonitorJob(name=job_name, image='azureclidev.azurecr.io/a01monitor:latest',
-                                         run_id=run_name, email=get_user_id() if email else None,
-                                         official=remark.lower() == 'official').get_body()
+        test_job = JobTemplate(name=job_name, run_id=run_name, image=droid_image, parallelism=parallelism,
+                               secret_name=secret, live=live).get_body()
+        monitor_job = MonitorTemplate(run_id=run_name, live=live, email=get_user_id(),
+                                      official=remark.lower() == 'official').get_body()
         api.create_namespaced_job(namespace='az', body=test_job)
         api.create_namespaced_job(namespace='az', body=monitor_job)
-        print(json.dumps({'run': run_name, 'job': job_name, 'monitor': f'{job_name}-monitor'}, indent=2))
+        print(json.dumps({'run': run_name, 'job': job_name, 'monitor': f'a01-monitor-{run_name}'}, indent=2))
     except ValueError as ex:
         logger.error(ex)
         sys.exit(1)
