@@ -1,3 +1,4 @@
 # pylint: disable=unused-import
 
-from .azurecli import AzureCliJob, AzureCliMonitorJob
+from .base import JobTemplate
+from .monitor import MonitorTemplate

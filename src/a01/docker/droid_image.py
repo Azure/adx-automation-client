@@ -36,6 +36,31 @@ class DroidImage(object):
         return tests
 
     @property
+    def product_name(self) -> str:
+        return self.image.labels.get('a01.product', None)
+
+    @property
+    def secret_to_env(self) -> dict:
+        """The secret key to environment variable map. The secret name is decided by the image label a01.product or
+        what the user specifies."""
+        result = {}
+        for key, value in self.image.labels.items():
+            if key.startswith('a01.env.') and value.startswith('secret:'):
+                result[key[8:]] = value[7:]
+        return result
+
+    @property
+    def live_env(self) -> (str, str):
+        for key, value in self.image.labels.items():
+            if key.startswith('a01.env.') and value.startswith('arg-live:'):
+                return key[8:], value[9:]
+        return None, None
+
+    @property
+    def mount_storage(self) -> bool:
+        return self.image.labels.get('a01.setting.storage', 'True') == 'True'
+
+    @property
     def image(self) -> docker.models.images.Image:
         try:
             if not self._image:

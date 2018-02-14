@@ -81,7 +81,7 @@ class Task(object):  # pylint: disable=too-many-instance-attributes
         if resp.status_code != 200:
             return
 
-        path_paths = self.settings['path'].split('.')
+        path_paths = self.settings['classifier']['identifier'].split('.')
         if az_mode:
             module_name = path_paths[3]
             method_name = path_paths[-1]

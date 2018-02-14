@@ -1,5 +1,4 @@
-import abc
-from typing import Dict, List, Optional
+from typing import List, Optional
 from kubernetes.client.models.v1_job import V1Job
 from kubernetes.client.models.v1_job_spec import V1JobSpec
 from kubernetes.client.models.v1_object_meta import V1ObjectMeta
@@ -9,28 +8,29 @@ from kubernetes.client.models.v1_pod_template_spec import V1PodTemplateSpec
 from kubernetes.client.models.v1_local_object_reference import V1LocalObjectReference
 from kubernetes.client.models.v1_volume import V1Volume
 from kubernetes.client.models.v1_volume_mount import V1VolumeMount
+from kubernetes.client.models.v1_azure_file_volume_source import V1AzureFileVolumeSource
 from kubernetes.client.models.v1_env_var import V1EnvVar
 from kubernetes.client.models.v1_env_var_source import V1EnvVarSource
 from kubernetes.client.models.v1_object_field_selector import V1ObjectFieldSelector
 from kubernetes.client.models.v1_secret_key_selector import V1SecretKeySelector
 
+from a01.docker.droid_image import DroidImage
 
-class JobTemplate(abc.ABC):  # pylint: disable=too-many-instance-attributes
-    def __init__(self, name: str, image: str, parallelism: Optional[int], run_id: str) -> None:
-        super(JobTemplate, self).__init__()
+BACKOFF_LIMIT = 5
+
+
+class JobTemplate(object):
+    def __init__(self, name: str, image: DroidImage, run_id: str,
+                 parallelism: Optional[int], live: bool = False, secret_name: str = None) -> None:
         self.name = name
         self.image = image
         self.parallelism = parallelism
         self.run_id = str(run_id)
-        self.labels = {'run_id': str(run_id)}
-
-        self.backoff_limit = 5
-        self.start_command = ['python', '/app/job.py']
+        self.labels = {'run_id': str(run_id), 'run_live': str(live)}
+        self.secret = secret_name or image.product_name
+        self.live = live
         self.images_pull_secrets = 'azureclidev-acr'
-
-        self.environment_variables = self.get_default_environment_variables()
-        self.environment_variables.extend(self.create_environments() or [])
-        self.volumes = self.create_volumes()
+        self.environment_variables = self.get_environment_variables()
 
     def get_body(self) -> V1Job:
         return V1Job(
@@ -45,7 +45,7 @@ class JobTemplate(abc.ABC):  # pylint: disable=too-many-instance-attributes
     def get_spec(self) -> V1JobSpec:
         return V1JobSpec(
             parallelism=self.parallelism,
-            backoff_limit=self.backoff_limit,
+            backoff_limit=BACKOFF_LIMIT,
             template=self.get_template()
         )
 
@@ -65,16 +65,10 @@ class JobTemplate(abc.ABC):  # pylint: disable=too-many-instance-attributes
             volumes=self.get_volumes())
 
     def get_containers(self) -> List[V1Container]:
-        main_container = V1Container(name=f'main', image=self.image)
+        main_container = V1Container(name=f'main', image=self.image.image_name)
 
-        if self.start_command:
-            main_container.command = self.start_command
-
-        if self.volumes:
-            volume_mounts = []
-            for mount_path, volume in self.volumes.items():
-                volume_mounts.append(V1VolumeMount(mount_path=mount_path, name=volume.name))
-            main_container.volume_mounts = volume_mounts
+        if self.image.mount_storage:
+            main_container.volume_mounts = [V1VolumeMount(mount_path='/mnt/storage', name='azure-storage')]
 
         if self.environment_variables:
             main_container.env = self.environment_variables
@@ -83,10 +77,13 @@ class JobTemplate(abc.ABC):  # pylint: disable=too-many-instance-attributes
         return [main_container]
 
     def get_volumes(self) -> Optional[List[V1Volume]]:
-        return list(self.volumes.values()) if self.volumes else None
+        if self.image.mount_storage:
+            return [V1Volume(name='azure-storage', azure_file=V1AzureFileVolumeSource(secret_name=self.secret,
+                                                                                      share_name='k8slog'))]
+        return None
 
-    def get_default_environment_variables(self) -> List[V1EnvVar]:  # pylint: disable=invalid-name
-        return [
+    def get_environment_variables(self) -> List[V1EnvVar]:
+        result = [
             V1EnvVar(name='ENV_POD_NAME',
                      value_from=V1EnvVarSource(field_ref=V1ObjectFieldSelector(field_path='metadata.name'))),
             V1EnvVar(name='ENV_NODE_NAME',
@@ -97,12 +94,13 @@ class JobTemplate(abc.ABC):  # pylint: disable=too-many-instance-attributes
                 secret_key_ref=V1SecretKeySelector(name='a01store-internal-communication-key', key='key')))
         ]
 
-    @abc.abstractmethod
-    def create_volumes(self) -> Optional[Dict[str, V1Volume]]:
-        """Return a mountPath -> volume map for customization. Otherwise returns None."""
-        return None
+        for name, key in self.image.secret_to_env.items():
+            result.append(V1EnvVar(name=name, value_from=V1EnvVarSource(
+                secret_key_ref=V1SecretKeySelector(name=self.secret, key=key))))
 
-    @abc.abstractmethod
-    def create_environments(self) -> Optional[List[V1EnvVar]]:
-        """Return environment variable settings. Otherwise return None."""
-        return None
+        if self.live:
+            name, value = self.image.live_env
+            if name and value:
+                result.append(V1EnvVar(name=name, value=value))
+
+        return result
