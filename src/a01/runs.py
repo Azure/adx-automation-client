@@ -130,7 +130,7 @@ def create_run(image: str,
         api = kube_client.BatchV1Api()
         test_job = JobTemplate(name=job_name, run_id=run_name, image=droid_image, parallelism=parallelism,
                                secret_name=secret, live=live).get_body()
-        monitor_job = MonitorTemplate(run_id=run_name, live=live, email=get_user_id(),
+        monitor_job = MonitorTemplate(run_id=run_name, live=live, email=get_user_id() if email else None,
                                       official=remark.lower() == 'official').get_body()
         api.create_namespaced_job(namespace='az', body=test_job)
         api.create_namespaced_job(namespace='az', body=monitor_job)

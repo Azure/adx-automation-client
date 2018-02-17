@@ -19,8 +19,8 @@ from a01.docker.droid_image import DroidImage
 BACKOFF_LIMIT = 5
 
 
-class JobTemplate(object):
-    def __init__(self, name: str, image: DroidImage, run_id: str,
+class JobTemplate(object):  # pylint: disable=too-many-instance-attributes
+    def __init__(self, name: str, image: DroidImage, run_id: str,  # pylint: disable=too-many-arguments
                  parallelism: Optional[int], live: bool = False, secret_name: str = None) -> None:
         self.name = name
         self.image = image
