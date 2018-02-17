@@ -2,7 +2,7 @@
 
 from setuptools import setup
 
-VERSION = "0.6.0"
+VERSION = "0.6.1"
 
 CLASSIFIERS = [
     'Development Status :: 4 - Beta',
@@ -35,6 +35,10 @@ setup(
     url='https://github.com/troydai/a01client',
     packages=[
         'a01',
+        'a01.models',
+        'a01.output',
+        'a01.jobs',
+        'a01.docker',
     ],
     package_dir={
         '': 'src'
