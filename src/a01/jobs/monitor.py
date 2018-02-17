@@ -1,6 +1,6 @@
-from kubernetes.client.models.v1_config_map_key_selector import V1ConfigMapKeySelector
-
 from typing import List
+
+from kubernetes.client.models.v1_config_map_key_selector import V1ConfigMapKeySelector
 from kubernetes.client.models.v1_job import V1Job
 from kubernetes.client.models.v1_job_spec import V1JobSpec
 from kubernetes.client.models.v1_object_meta import V1ObjectMeta
@@ -16,8 +16,8 @@ from kubernetes.client.models.v1_secret_key_selector import V1SecretKeySelector
 BACKOFF_LIMIT = 5
 
 
-class MonitorTemplate(object):
-    def __init__(self, run_id: str, live: bool = False, interval: int = 30,
+class MonitorTemplate(object):  # pylint: disable=too-many-instance-attributes
+    def __init__(self, run_id: str, live: bool = False, interval: int = 30,  # pylint: disable=too-many-arguments
                  secret_name: str = 'azurecli-email', config_name: str = 'azurecli-config', email: str = None,
                  official: bool = False) -> None:
         self.image_name = 'azureclidev.azurecr.io/a01monitor:latest'
