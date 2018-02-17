@@ -86,10 +86,10 @@ def create_run(image: str,
                path_prefix: str = None, from_failures: str = None, dry_run: bool = False, live: bool = False,
                parallelism: int = 3, query: str = None, remark: str = None, email: bool = False,
                skip_kube: bool = False, secret: str = None) -> None:
-    job_name = f'azurecli-test-{base64.b32encode(os.urandom(12)).decode("utf-8").lower()}'.rstrip('=')
     remark = remark or ''
     try:
         droid_image = DroidImage(image)
+        job_name = f'{droid_image.product_name}-{base64.b32encode(os.urandom(12)).decode("utf-8").lower()}'.rstrip('=')
         candidates = droid_image.list_tasks(query=query)
 
         if path_prefix:
