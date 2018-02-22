@@ -32,6 +32,8 @@ class JobTemplate(object):  # pylint: disable=too-many-instance-attributes
         self.images_pull_secrets = 'azureclidev-acr'
         self.environment_variables = self.get_environment_variables()
 
+        self.mount_share = 'k8slog'
+
     def get_body(self) -> V1Job:
         return V1Job(
             api_version='batch/v1',
@@ -79,7 +81,7 @@ class JobTemplate(object):  # pylint: disable=too-many-instance-attributes
     def get_volumes(self) -> Optional[List[V1Volume]]:
         if self.image.mount_storage:
             return [V1Volume(name='azure-storage', azure_file=V1AzureFileVolumeSource(secret_name=self.secret,
-                                                                                      share_name='k8slog'))]
+                                                                                      share_name=self.mount_share))]
         return None
 
     def get_environment_variables(self) -> List[V1EnvVar]:
