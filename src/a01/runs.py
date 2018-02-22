@@ -19,6 +19,8 @@ from a01.docker import DroidImage
 
 logger = get_logger(__name__)  # pylint: disable=invalid-name
 
+NAMESPACE = 'az'
+
 
 @cmd('get runs', desc='Retrieve the runs.')
 def get_runs() -> None:
@@ -106,6 +108,9 @@ def create_run(image: str,
 
             sys.exit(0)
 
+        kube_config.load_kube_config()
+        api = kube_client.BatchV1Api()
+
         run_model = a01.models.Run(name=f'Azure CLI Test @ {image}',
                                    settings={
                                        'droid_image': image,
@@ -114,8 +119,11 @@ def create_run(image: str,
                                        'creator': os.environ.get('USER', os.environ.get('USERNAME', 'Unknown')),
                                        'client': 'A01 CLI',
                                        'live': str(live),
-                                       'remark': remark
+                                       'remark': remark,
+                                       'secret': secret or droid_image.product_name,
+                                       'product': droid_image.product_name
                                    })
+
         run_name = run_model.post()
 
         tasks = [a01.models.Task(name=f'Test: {c["classifier"]["identifier"]}', annotation=image, settings=c) for c in
@@ -126,8 +134,6 @@ def create_run(image: str,
         if skip_kube:
             sys.exit(0)
 
-        kube_config.load_kube_config()
-        api = kube_client.BatchV1Api()
         test_job = JobTemplate(name=job_name, run_id=run_name, image=droid_image, parallelism=parallelism,
                                secret_name=secret, live=live).get_body()
         monitor_job = MonitorTemplate(run_id=run_name, live=live, email=get_user_id() if email else None,
