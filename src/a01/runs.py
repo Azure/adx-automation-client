@@ -85,10 +85,9 @@ def get_run(run_id: str, log: bool = False, recording: bool = False, recording_a
 @arg('skip_kube', option=['--skip-kubernetes'], help='Create tasks in task store without schedule Kubernetes jobs. '
                                                      'It is used mainly in testing scenarios.')
 @arg('secret', help='The name of the secret to be used. Default to the image\'s a01.product label.')
-# pylint: disable=too-many-arguments
-def create_run(image: str,
-               path_prefix: str = None, from_failures: str = None, dry_run: bool = False, live: bool = False,
-               parallelism: int = 3, query: str = None, remark: str = None, email: bool = False,
+# pylint: disable=too-many-arguments, too-many-locals
+def create_run(image: str, path_prefix: str = None, from_failures: str = None, dry_run: bool = False,
+               live: bool = False, parallelism: int = 3, query: str = None, remark: str = None, email: bool = False,
                skip_kube: bool = False, secret: str = None, mode: str = None) -> None:
     remark = remark or ''
     try:
