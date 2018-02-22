@@ -76,6 +76,8 @@ def get_run(run_id: str, log: bool = False, recording: bool = False, recording_a
 @arg('from_failures', option=['--from-failures'], help='Create the run base on the failed tasks of another run')
 @arg('path_prefix', option=['--prefix'], help='Filter the task base on the test path prefix')
 @arg('live', help='Run test live')
+@arg('mode', help='The mode in which the test is run. The option accept a string which will be passed on to the pod as'
+                  'an environment variable. The meaning of the string is open for interpretations.')
 @arg('query', help='The regular expression used to query the tests.')
 @arg('remark', help='The addition information regarding to this run. Specify "official" will trigger an email '
                     'notification to the entire team after the job finishes.')
@@ -87,7 +89,7 @@ def get_run(run_id: str, log: bool = False, recording: bool = False, recording_a
 def create_run(image: str,
                path_prefix: str = None, from_failures: str = None, dry_run: bool = False, live: bool = False,
                parallelism: int = 3, query: str = None, remark: str = None, email: bool = False,
-               skip_kube: bool = False, secret: str = None) -> None:
+               skip_kube: bool = False, secret: str = None, mode: str = None) -> None:
     remark = remark or ''
     try:
         droid_image = DroidImage(image)
@@ -135,7 +137,7 @@ def create_run(image: str,
             sys.exit(0)
 
         test_job = JobTemplate(name=job_name, run_id=run_name, image=droid_image, parallelism=parallelism,
-                               secret_name=secret, live=live).get_body()
+                               secret_name=secret, live=live, mode=mode).get_body()
         monitor_job = MonitorTemplate(run_id=run_name, live=live, email=get_user_id() if email else None,
                                       official=remark.lower() == 'official').get_body()
         api.create_namespaced_job(namespace='az', body=test_job)

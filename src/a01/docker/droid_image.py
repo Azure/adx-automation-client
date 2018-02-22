@@ -1,7 +1,7 @@
 import functools
 import json
 import re
-from typing import List
+from typing import List, Optional
 
 import docker
 import docker.errors
@@ -55,6 +55,13 @@ class DroidImage(object):
             if key.startswith('a01.env.') and value.startswith('arg-live:'):
                 return key[8:], value[9:]
         return None, None
+
+    @property
+    def mode_env(self) -> Optional[str]:
+        for key, value in self.image.labels.items():
+            if key.startswith('a01.env.') and value.startswith('arg-mode'):
+                return key[8:]
+        return None
 
     @property
     def mount_storage(self) -> bool:
