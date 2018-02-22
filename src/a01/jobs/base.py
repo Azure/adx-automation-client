@@ -21,14 +21,17 @@ BACKOFF_LIMIT = 5
 
 class JobTemplate(object):  # pylint: disable=too-many-instance-attributes
     def __init__(self, name: str, image: DroidImage, run_id: str,  # pylint: disable=too-many-arguments
-                 parallelism: Optional[int], live: bool = False, secret_name: str = None) -> None:
+                 parallelism: Optional[int], live: bool = False, secret_name: str = None, mode: str = None) -> None:
         self.name = name
         self.image = image
         self.parallelism = parallelism
         self.run_id = str(run_id)
         self.labels = {'run_id': str(run_id), 'run_live': str(live)}
         self.secret = secret_name or image.product_name
+
         self.live = live
+        self.mode = mode
+
         self.images_pull_secrets = 'azureclidev-acr'
         self.environment_variables = self.get_environment_variables()
 
@@ -104,5 +107,10 @@ class JobTemplate(object):  # pylint: disable=too-many-instance-attributes
             name, value = self.image.live_env
             if name and value:
                 result.append(V1EnvVar(name=name, value=value))
+
+        if self.mode:
+            name = self.image.mode_env
+            if name:
+                result.append(V1EnvVar(name=name, value=self.mode))
 
         return result
