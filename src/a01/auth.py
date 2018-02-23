@@ -142,7 +142,7 @@ class A01Auth(requests.auth.AuthBase):  # pylint: disable=too-few-public-methods
 @a01.cli.arg('endpoint', help='Host name of the target A01 system.')
 def login(endpoint: str) -> None:
     try:
-        requests.get(f'https://{endpoint}/healthy').raise_for_status()
+        requests.get(f'https://{endpoint}/api/healthy').raise_for_status()
     except requests.HTTPError:
         get_logger(__name__).error(f'Cannot reach endpoint https://{endpoint}/healthy')
         sys.exit(1)
