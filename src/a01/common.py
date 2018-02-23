@@ -25,6 +25,11 @@ coloredlogs.install(level=os.environ.get('A01_DEBUG', 'ERROR'))
 
 NAMESPACE = 'az'
 
+EMAIL_ACCOUNT_SECRET_NAME = 'a01monitor'
+EMAIL_SERVICE_FAIL_RESET_LIMIT = 5
+
+COMMON_IMAGE_PULL_SECRET = 'azureclidev-acr'
+
 
 def get_logger(name: str) -> logging.Logger:
     return logging.getLogger(name)
