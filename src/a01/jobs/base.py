@@ -94,9 +94,9 @@ class JobTemplate(object):  # pylint: disable=too-many-instance-attributes
             V1EnvVar(name='ENV_NODE_NAME',
                      value_from=V1EnvVarSource(field_ref=V1ObjectFieldSelector(field_path='spec.nodeName'))),
             V1EnvVar(name='A01_DROID_RUN_ID', value=self.run_id),
-            V1EnvVar(name='A01_STORE_NAME', value='task-store-web-service-internal'),
+            V1EnvVar(name='A01_STORE_NAME', value='task-store-web-service-internal/api'),
             V1EnvVar(name='A01_INTERNAL_COMKEY', value_from=V1EnvVarSource(
-                secret_key_ref=V1SecretKeySelector(name='a01store-internal-communication-key', key='key')))
+                secret_key_ref=V1SecretKeySelector(name='a01store', key='internal.key')))
         ]
 
         for name, key in self.image.secret_to_env.items():

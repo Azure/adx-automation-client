@@ -5,8 +5,6 @@ import configparser
 
 import coloredlogs
 
-KUBE_STORE_NAME = 'task-store-web-service'
-
 LOG_FILE = 'https://azureclia01log.file.core.windows.net/k8slog/{}' \
            '?sv=2017-04-17&ss=f&srt=o&sp=r&se=2019-01-01T00:00:00Z&st=2018-01-04T10:21:21Z&' \
            'spr=https&sig=I9Ajm2i8Knl3hm1rfN%2Ft2E934trzj%2FNnozLYhQ%2Bb7TE%3D'
@@ -64,4 +62,4 @@ class A01Config(configparser.ConfigParser):  # pylint: disable=too-many-ancestor
 
     @property
     def endpoint_uri(self) -> str:
-        return f'https://{self.endpoint}'
+        return f'https://{self.endpoint}/api'
