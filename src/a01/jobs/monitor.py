@@ -63,8 +63,9 @@ class MonitorTemplate(object):  # pylint: disable=too-many-instance-attributes
         envs = [
             V1EnvVar(name='A01_MONITOR_RUN_ID', value=self.run_id),
             V1EnvVar(name='A01_MONITOR_INTERVAL', value=str(self.interval)),
+            V1EnvVar(name='A01_STORE_NAME', value='task-store-web-service-internal/api'),
             V1EnvVar(name='A01_INTERNAL_COMKEY', value_from=V1EnvVarSource(
-                secret_key_ref=V1SecretKeySelector(name='a01store-internal-communication-key', key='key')))
+                secret_key_ref=V1SecretKeySelector(name='a01store', key='internal.key')))
         ]
 
         if self.email or self.official:
