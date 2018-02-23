@@ -22,12 +22,18 @@ def get_task(ids: [str], log: bool = False, recording: bool = False, recording_a
         task = a01.models.Task.get(task_id=task_id)
         output_in_table(zip_longest(task.get_table_header(), task.get_table_view()), tablefmt='plain')
 
+        log_path_template = None
+        if log or recording:
+            run = a01.models.Run.get(run_id=task.run_id)
+            log_path_template = run.get_log_path_template()
+
         if log:
             print()
-            output_in_table(task.get_log_content(), tablefmt='plain', foreground_color=colorama.Fore.CYAN)
+            output_in_table(task.get_log_content(log_path_template), tablefmt='plain',
+                            foreground_color=colorama.Fore.CYAN)
 
         if recording:
             print()
-            task.download_recording(recording_az_mode)
+            task.download_recording(log_path_template, recording_az_mode)
 
         print()

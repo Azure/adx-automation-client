@@ -4,7 +4,7 @@ from typing import Tuple, Generator
 
 import requests
 
-from a01.common import get_logger, A01Config, LOG_FILE
+from a01.common import get_logger, A01Config
 from a01.communication import session
 
 
@@ -38,10 +38,6 @@ class Task(object):  # pylint: disable=too-many-instance-attributes
             cls.logger.debug('JsonError', exc_info=True)
             raise ValueError('Fail to parse the runs data.')
 
-    @property
-    def log_path(self) -> str:
-        return LOG_FILE.format(f'{self.run_id}/task_{self.id}.log')
-
     def to_dict(self) -> dict:
         result = {
             'name': self.name,
@@ -63,8 +59,9 @@ class Task(object):  # pylint: disable=too-many-instance-attributes
 
         return result
 
-    def get_log_content(self) -> Generator[str, None, None]:
-        for index, line in enumerate(requests.get(self.log_path).content.decode('utf-8').split('\n')):
+    def get_log_content(self, log_path_template: str) -> Generator[str, None, None]:
+        log_path = log_path_template.format(f'{self.run_id}/task_{self.id}.log')
+        for index, line in enumerate(requests.get(log_path).content.decode('utf-8').split('\n')):
             yield '>', f' {index}\t{line}'
 
     def get_table_view(self) -> Tuple[str, ...]:
@@ -75,8 +72,8 @@ class Task(object):  # pylint: disable=too-many-instance-attributes
     def get_table_header() -> Tuple[str, ...]:
         return 'Id', 'Name', 'Status', 'Result', 'Agent', 'Duration(ms)'
 
-    def download_recording(self, az_mode: bool) -> None:
-        recording_path = LOG_FILE.format(f'{self.run_id}/recording_{self.id}.yaml')
+    def download_recording(self, log_path_template: str, az_mode: bool) -> None:
+        recording_path = log_path_template.format(f'{self.run_id}/recording_{self.id}.yaml')
         resp = requests.get(recording_path)
         if resp.status_code != 200:
             return
