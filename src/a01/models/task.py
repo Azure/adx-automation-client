@@ -64,7 +64,7 @@ class Task(object):  # pylint: disable=too-many-instance-attributes
         return result
 
     def get_log_content(self) -> Generator[str, None, None]:
-        for index, line in enumerate(requests.get(self.log_path).content.decode('utf-7').split('\n')):
+        for index, line in enumerate(requests.get(self.log_path).content.decode('utf-8').split('\n')):
             yield '>', f' {index}\t{line}'
 
     def get_table_view(self) -> Tuple[str, ...]:
