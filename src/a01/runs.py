@@ -104,7 +104,8 @@ def create_run(image: str, path_prefix: str = None, from_failures: str = None, d
 
         if from_failures:
             failed_tasks = set(
-                task.settings['classifier']['identifier'] for task in a01.models.TaskCollection.get(from_failures).get_failed_tasks())
+                task.settings['classifier']['identifier'] for task in
+                a01.models.TaskCollection.get(from_failures).get_failed_tasks())
             candidates = [c for c in candidates if c['classifier']['identifier'] in failed_tasks]
 
         if dry_run:
