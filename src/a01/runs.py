@@ -19,8 +19,6 @@ from a01.docker import DroidImage
 
 logger = get_logger(__name__)  # pylint: disable=invalid-name
 
-NAMESPACE = 'az'
-
 
 @cmd('get runs', desc='Retrieve the runs.')
 def get_runs() -> None:
@@ -50,10 +48,16 @@ def get_run(run_id: str, log: bool = False, recording: bool = False, recording_a
         output_in_table(tasks.get_table_view(failed=not show_all), headers=tasks.get_table_header())
         output_in_table(tasks.get_summary(), tablefmt='plain')
 
+        log_path_template = None
+        if log or recording:
+            run = a01.models.Run.get(run_id=run_id)
+            log_path_template = run.get_log_path_template()
+
         if log:
             for failure in tasks.get_failed_tasks():
                 output_in_table(zip_longest(failure.get_table_header(), failure.get_table_view()), tablefmt='plain')
-                output_in_table(failure.get_log_content(), tablefmt='plain', foreground_color=colorama.Fore.CYAN)
+                output_in_table(failure.get_log_content(log_path_template), tablefmt='plain',
+                                foreground_color=colorama.Fore.CYAN)
 
             output_in_table(tasks.get_summary(), tablefmt='plain')
 
@@ -61,7 +65,7 @@ def get_run(run_id: str, log: bool = False, recording: bool = False, recording_a
             print()
             print('Download recordings ...')
             for task in tasks.tasks:
-                task.download_recording(recording_az_mode)
+                task.download_recording(log_path_template, recording_az_mode)
     except ValueError as err:
         logger.error(err)
         sys.exit(1)

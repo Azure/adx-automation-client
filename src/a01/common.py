@@ -23,6 +23,8 @@ IS_WINDOWS = sys.platform.lower() in ['windows', 'win32']
 
 coloredlogs.install(level=os.environ.get('A01_DEBUG', 'ERROR'))
 
+NAMESPACE = 'az'
+
 
 def get_logger(name: str) -> logging.Logger:
     return logging.getLogger(name)
