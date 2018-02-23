@@ -27,8 +27,6 @@ def check_environment():
     result &= verify_item('Kubernete namespace az', 'kubectl get namespace az',
                           'The cluster must have a namespace named az associated. You may not have log in your '
                           'kubectrl with correct AKS service. Run "az aks get-credentials -n <aks_service>" to login.')
-    result &= verify_item('Kubernete namespace az', 'kubectl config use-context az',
-                          'The current context must be switch to az')
 
     sys.exit(0 if result else 1)
 
