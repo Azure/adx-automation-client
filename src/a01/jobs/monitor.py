@@ -12,25 +12,21 @@ from kubernetes.client.models.v1_env_var import V1EnvVar
 from kubernetes.client.models.v1_env_var_source import V1EnvVarSource
 from kubernetes.client.models.v1_secret_key_selector import V1SecretKeySelector
 
+from a01.models import Run
+from a01.common import EMAIL_ACCOUNT_SECRET_NAME, EMAIL_SERVICE_FAIL_RESET_LIMIT, COMMON_IMAGE_PULL_SECRET
 
-BACKOFF_LIMIT = 5
+MONITOR_IMAGE = 'azureclidev.azurecr.io/a01monitor:latest'
 
 
-class MonitorTemplate(object):  # pylint: disable=too-many-instance-attributes
-    def __init__(self, run_id: str, live: bool = False, interval: int = 30,  # pylint: disable=too-many-arguments
-                 secret_name: str = 'azurecli-email', config_name: str = 'azurecli-config', email: str = None,
-                 official: bool = False) -> None:
-        self.image_name = 'azureclidev.azurecr.io/a01monitor:latest'
-        self.run_id = str(run_id)
-        self.name = f'a01-monitor-{self.run_id}'
-        self.labels = {'run_id': str(run_id), 'run_live': str(live)}
-        self.secret = secret_name
-        self.config = config_name
-        self.live = live
-        self.images_pull_secrets = 'azureclidev-acr'
+class MonitorTemplate(object):
+    def __init__(self, run: Run, interval: int = 30, email: str = None) -> None:
+        self.run = run
+        self.name = f'a01-monitor-{self.run.id}'
+        self.labels = {'run_id': str(run.id), 'run_live': run.details['live']}
+        self.official = run.details.get('remark', '').lower() == 'official'
+
         self.interval = interval
         self.email = email
-        self.official = official
 
     def get_body(self) -> V1Job:
         return V1Job(
@@ -43,7 +39,7 @@ class MonitorTemplate(object):  # pylint: disable=too-many-instance-attributes
         return V1ObjectMeta(name=self.name, labels=self.labels)
 
     def get_spec(self) -> V1JobSpec:
-        return V1JobSpec(backoff_limit=BACKOFF_LIMIT, template=self.get_template())
+        return V1JobSpec(backoff_limit=EMAIL_SERVICE_FAIL_RESET_LIMIT, template=self.get_template())
 
     def get_template(self) -> V1PodTemplateSpec:
         return V1PodTemplateSpec(
@@ -53,15 +49,15 @@ class MonitorTemplate(object):  # pylint: disable=too-many-instance-attributes
     def get_pod_spec(self) -> V1PodSpec:
         return V1PodSpec(
             containers=self.get_containers(),
-            image_pull_secrets=[V1LocalObjectReference(name=self.images_pull_secrets)],
+            image_pull_secrets=[V1LocalObjectReference(name=COMMON_IMAGE_PULL_SECRET)],
             restart_policy='Never')
 
     def get_containers(self) -> List[V1Container]:
-        return [V1Container(name=f'main', image=self.image_name, env=self.get_environment_variables())]
+        return [V1Container(name=f'main', image=MONITOR_IMAGE, env=self.get_environment_variables())]
 
     def get_environment_variables(self) -> List[V1EnvVar]:
-        envs = [
-            V1EnvVar(name='A01_MONITOR_RUN_ID', value=self.run_id),
+        environment = [
+            V1EnvVar(name='A01_MONITOR_RUN_ID', value=str(self.run.id)),
             V1EnvVar(name='A01_MONITOR_INTERVAL', value=str(self.interval)),
             V1EnvVar(name='A01_STORE_NAME', value='task-store-web-service-internal/api'),
             V1EnvVar(name='A01_INTERNAL_COMKEY', value_from=V1EnvVarSource(
@@ -69,23 +65,28 @@ class MonitorTemplate(object):  # pylint: disable=too-many-instance-attributes
         ]
 
         if self.email or self.official:
-            envs.extend([
+            environment.extend([
                 self._map_secret_to_env('A01_REPORT_SMTP_SERVER', 'server'),
                 self._map_secret_to_env('A01_REPORT_SENDER_ADDRESS', 'username'),
                 self._map_secret_to_env('A01_REPORT_SENDER_PASSWORD', 'password')])
 
             if self.official:
-                envs.append(self._map_config_to_env('A01_REPORT_RECEIVER', 'official.email'))
+                environment.append(self._map_config_to_env('A01_REPORT_RECEIVER', 'official.email'))
             elif self.email:
-                envs.append(V1EnvVar(name='A01_REPORT_RECEIVER', value=self.email))
+                environment.append(V1EnvVar(name='A01_REPORT_RECEIVER', value=self.email))
 
-        return envs
+        return environment
 
-    def _map_secret_to_env(self, env_name: str, secret_key: str) -> V1EnvVar:
-        return V1EnvVar(name=env_name,
-                        value_from=V1EnvVarSource(secret_key_ref=V1SecretKeySelector(name=self.secret, key=secret_key)))
-
-    def _map_config_to_env(self, env_name: str, config_key: str) -> V1EnvVar:
+    @staticmethod
+    def _map_secret_to_env(env_name: str, secret_key: str) -> V1EnvVar:
         return V1EnvVar(name=env_name,
                         value_from=V1EnvVarSource(
-                            config_map_key_ref=V1ConfigMapKeySelector(name=self.config, key=config_key)))
+                            secret_key_ref=V1SecretKeySelector(
+                                name=EMAIL_ACCOUNT_SECRET_NAME,
+                                key=secret_key)))
+
+    def _map_config_to_env(self, env_name: str, config_key: str) -> V1EnvVar:
+        config_name = self.run.details['product']
+        return V1EnvVar(name=env_name,
+                        value_from=V1EnvVarSource(
+                            config_map_key_ref=V1ConfigMapKeySelector(name=config_name, key=config_key)))

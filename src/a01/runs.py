@@ -140,10 +140,10 @@ def create_run(image: str, path_prefix: str = None, from_failures: str = None, d
         if skip_kube:
             sys.exit(0)
 
+        run_model = a01.models.Run.get(run_name)
         test_job = JobTemplate(name=job_name, run_id=run_name, image=droid_image, parallelism=parallelism,
                                secret_name=secret, live=live, mode=mode).get_body()
-        monitor_job = MonitorTemplate(run_id=run_name, live=live, email=get_user_id() if email else None,
-                                      official=remark.lower() == 'official').get_body()
+        monitor_job = MonitorTemplate(run=run_model, email=get_user_id() if email else None).get_body()
         api.create_namespaced_job(namespace='az', body=test_job)
         api.create_namespaced_job(namespace='az', body=monitor_job)
         print(json.dumps({'run': run_name, 'job': job_name, 'monitor': f'a01-monitor-{run_name}'}, indent=2))
