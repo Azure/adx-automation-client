@@ -9,7 +9,7 @@ from kubernetes import config as kube_config
 from kubernetes import client as kube_client
 
 from a01.communication import session
-from a01.common import get_logger, A01Config, LOG_FILE, NAMESPACE
+from a01.common import get_logger, A01Config, NAMESPACE
 
 
 class Run(object):
@@ -64,7 +64,7 @@ class Run(object):
             secret_data = secret.data.get('log.path.template', None)
             if secret_data:
                 return base64.b64decode(secret_data).decode('utf-8')
-        return LOG_FILE
+        raise ValueError('The log.path.template is missing in the secert. The run has expired.')
 
     @staticmethod
     def from_dict(data: dict) -> 'Run':
