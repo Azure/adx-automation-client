@@ -1,8 +1,20 @@
 #!/usr/bin/env python3
 
+import os
+import datetime
 from setuptools import setup
 
-VERSION = "0.10.2"
+def get_version() -> str:
+    if "TRAVIS" in os.environ:
+        tag = os.environ.get('TRAVIS_TAG', None)
+        if tag:
+            return tag
+        else:
+            return f'0.0.0.{os.environ["TRAVIS_BUILD_NUMBER"]}'
+    return f'0.0.0.{datetime.datetime.now().strftime("%Y%m%d%H%M%S")}'
+
+
+VERSION = get_version()
 
 CLASSIFIERS = [
     'Development Status :: 4 - Beta',

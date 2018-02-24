@@ -19,5 +19,6 @@ urllib3==1.22
 wrapt==1.10.11
 kubernetes==4.0.0
 websocket-client==0.40.0
+wheel==0.30.0
 
 -e .

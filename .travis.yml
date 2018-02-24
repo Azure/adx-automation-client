@@ -1,8 +1,15 @@
 language: python
 python:
 - '3.6'
+before_install:
+- echo "deb [arch=amd64] https://packages.microsoft.com/repos/azure-cli/ `lsb_release -cs` main" | sudo tee /etc/apt/sources.list.d/azure-cli.list
+- sudo apt-key adv --keyserver packages.microsoft.com --recv-keys 52E16F86FEE04B979B07E28DB02C46DF417A0893
+- sudo apt-get install -y apt-transport-https
+- sudo apt-get -qq update && sudo apt-get install -y azure-cli
 install:
 - pip install -r requirements.txt
 script:
 - pylint src
-- "./setup.py bdist_wheel"
+- export
+- ./setup.py bdist_wheel
+- ./publish.sh
