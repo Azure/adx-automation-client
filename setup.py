@@ -2,7 +2,7 @@
 
 from setuptools import setup
 
-VERSION = "0.10.1"
+VERSION = "0.10.2"
 
 CLASSIFIERS = [
     'Development Status :: 4 - Beta',
@@ -25,14 +25,14 @@ DEPENDENCIES = [
 ]
 
 setup(
-    name='a01ctl',
+    name='adx-automation-cli',
     version=VERSION,
-    description='A01 CLI',
-    long_description='Command line tools for a01 system',
+    description='ADX Automation CLI',
+    long_description='Command line tools for ADX automation system',
     license='MIT',
     author='Microsoft Corporation',
     author_email='trdai@microsoft.com',
-    url='https://github.com/troydai/a01client',
+    url='https://github.com/Azure/adx-automation-client',
     packages=[
         'a01',
         'a01.models',
