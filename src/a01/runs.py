@@ -80,7 +80,7 @@ def get_run(run_id: str, log: bool = False, recording: bool = False, recording_a
 @arg('from_failures', option=['--from-failures'], help='Create the run base on the failed tasks of another run')
 @arg('path_prefix', option=['--prefix'], help='Filter the task base on the test path prefix')
 @arg('live', help='Run test live')
-@arg('mode', help='The mode in which the test is run. The option accept a string which will be passed on to the pod as'
+@arg('mode', help='The mode in which the test is run. The option accept a string which will be passed on to the pod as '
                   'an environment variable. The meaning of the string is open for interpretations.')
 @arg('query', help='The regular expression used to query the tests.')
 @arg('remark', help='The addition information regarding to this run. Specify "official" will trigger an email '

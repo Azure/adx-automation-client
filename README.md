@@ -40,6 +40,10 @@ $ pip install https://a01tools.blob.core.windows.net/client/adx_automation_cli_l
 - Run `a01 check` to validate environment.
 - Run `a01 login --endpoint a01.azclitest.com` to login.
 
+## Onboard your own tests
+
+Find onboard documentation [here](/onboard.md).
+
 # Contributing
 
 This project welcomes contributions and suggestions.  Most contributions require you to agree to a
