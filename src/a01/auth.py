@@ -37,7 +37,14 @@ class AuthSettings(object):
     @property
     def has_login(self) -> bool:
         try:
-            return self.user_id is not None
+            return self.access_token is not None
+        except AuthenticationError:
+            return False
+
+    @property
+    def is_service_principal(self) -> bool:
+        try:
+            return self.user_id is None and self.has_login
         except AuthenticationError:
             return False
 
@@ -83,6 +90,21 @@ class AuthSettings(object):
             return True
         except IOError:
             return False
+        except adal.AdalError:
+            self.logger.exception('Fail to authenticate.')
+            return False
+
+    def login_service_principal(self, username: str, password: str) -> bool:
+        self.logger.info('Login as service principal')
+        try:
+            context = self._get_auth_context()
+            self._token_raw = context.acquire_token_with_client_credentials(resource=RESOURCE_ID,
+                                                                            client_id=username,
+                                                                            client_secret=password)
+            self.logger.debug(f'Acquired token from authority {self._token_raw.get("_authority", "unknown")}.')
+            self._save_token()
+            print('Welcome')
+            return True
         except adal.AdalError:
             self.logger.exception('Fail to authenticate.')
             return False
@@ -139,24 +161,37 @@ class A01Auth(requests.auth.AuthBase):  # pylint: disable=too-few-public-methods
 
 
 @a01.cli.cmd('login', desc='Log in with Microsoft account.')
-@a01.cli.arg('endpoint', help='Host name of the target A01 system.')
-def login(endpoint: str) -> None:
+@a01.cli.arg('endpoint', help='Host name of the target A01 system.', required=True)
+@a01.cli.arg('service_principal', option=['--sp'], help='Login with a service principal.')
+@a01.cli.arg('username', option=['--username', '-u'], help='The username of the service principal.')
+@a01.cli.arg('password', option=['--password', '-p'], help='The password of the service principal.')
+def login(endpoint: str, service_principal: bool = False, username: str = None, password: str = None) -> None:
+    logger = get_logger('login')
     try:
         requests.get(f'https://{endpoint}/api/healthy').raise_for_status()
-    except requests.HTTPError:
-        get_logger(__name__).error(f'Cannot reach endpoint https://{endpoint}/healthy')
+    except (requests.HTTPError, requests.ConnectionError):
+        logger.error(f'Cannot reach endpoint https://{endpoint}/api/healthy')
         sys.exit(1)
+
+    auth = AuthSettings()
+    if service_principal:
+        if not username or not password:
+            logger.error('Username or password is missing.')
+            sys.exit(1)
+
+        if not auth.login_service_principal(username, password):
+            logger.error(f'Fail to login using service principal {username}.')
+            sys.exit(1)
+    else:
+        if not auth.login():
+            sys.exit(1)
 
     config = A01Config()
     config.endpoint = endpoint
     if not config.save():
-        get_logger(__name__).error(f'Cannot read or write to file {CONFIG_FILE}')
+        logger.error(f'Cannot read or write to file {CONFIG_FILE}')
         sys.exit(1)
-
-    if AuthSettings().login():
-        sys.exit(0)
-    else:
-        sys.exit(1)
+    sys.exit(0)
 
 
 @a01.cli.cmd('logout', desc='Log out - clear the credentials')
