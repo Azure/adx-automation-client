@@ -109,3 +109,4 @@ secret.yaml
 
 # User data
 recording/
+.idea/
