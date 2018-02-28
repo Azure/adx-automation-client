@@ -13,4 +13,5 @@ version=${version/-py3-none-any.whl/}
 echo $version
 
 az storage blob upload -c client -f $wheel_file -n archive/$wheel_file --validate-content --no-progress
-az storage blob upload -c client -f $wheel_file -n adx_automation_cli_latest.whl --validate-content --no-progress
+az storage blob url -c client -n archive/$wheel_file > latest
+az storage blob upload -c client -f latest -n latest --validate-content --no-progress
