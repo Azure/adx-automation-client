@@ -21,17 +21,20 @@
 
 $ virtualenv env --python=python3
 $ . env/bin/activate
-$ pip install https://a01tools.blob.core.windows.net/client/adx_automation_cli_latest.whl
+$ curl -s https://a01tools.blob.core.windows.net/client/latest | xargs pip install
 
 ```
 
 ### Windows
 
+- In a browser navigate to https://a01tools.blob.core.windows.net/client/latest
+- Write down the path
+
 ```cmd
 
 > python -m virtualenv env --python=python3.6
 > env\Scripts\activate
-> pip install https://a01tools.blob.core.windows.net/client/adx_automation_cli_latest.whl
+> pip install <path>
 
 ```
 
@@ -42,7 +45,7 @@ $ pip install https://a01tools.blob.core.windows.net/client/adx_automation_cli_l
 
 ## Onboard your own tests
 
-Find onboard documentation [here](/onboard.md).
+Find onboard documentation [here](/docs/onboard.md).
 
 # Contributing
 
