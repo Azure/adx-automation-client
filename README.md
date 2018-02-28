@@ -10,7 +10,7 @@
 
 ## Install
 
-- The latest tagged version can be download here: https://a01tools.blob.core.windows.net/client/adx_automation_cli_latest.whl
+- Path to the latest version can be found here: https://a01tools.blob.core.windows.net/client/latest
 - Note: 
     - Through virtual environment is not required, it is nevertheless included in following examples as a good practice.
     - The earlier version can be found at https://a01tools.blob.core.windows.net/client/archive/adx_automation_cli-{VERSION}-py3-none-any.whl
