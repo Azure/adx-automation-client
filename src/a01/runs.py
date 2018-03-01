@@ -7,15 +7,26 @@ from itertools import zip_longest
 import colorama
 from kubernetes import config as kube_config
 from kubernetes import client as kube_client
+from kubernetes.client import V1ObjectFieldSelector
+
+from kubernetes.client.models.v1_config_map_key_selector import V1ConfigMapKeySelector
+from kubernetes.client.models.v1_job import V1Job
+from kubernetes.client.models.v1_job_spec import V1JobSpec
+from kubernetes.client.models.v1_object_meta import V1ObjectMeta
+from kubernetes.client.models.v1_container import V1Container
+from kubernetes.client.models.v1_pod_spec import V1PodSpec
+from kubernetes.client.models.v1_pod_template_spec import V1PodTemplateSpec
+from kubernetes.client.models.v1_local_object_reference import V1LocalObjectReference
+from kubernetes.client.models.v1_env_var import V1EnvVar
+from kubernetes.client.models.v1_env_var_source import V1EnvVarSource
+from kubernetes.client.models.v1_secret_key_selector import V1SecretKeySelector
 
 import a01.models
-from a01.common import get_logger, A01Config
+from a01.common import get_logger, A01Config, COMMON_IMAGE_PULL_SECRET
 from a01.cli import cmd, arg
 from a01.communication import session
 from a01.auth import get_user_id
 from a01.output import output_in_table
-from a01.jobs import JobTemplate, MonitorTemplate
-from a01.docker import DroidImage
 
 logger = get_logger(__name__)  # pylint: disable=invalid-name
 
@@ -41,8 +52,9 @@ def get_runs() -> None:
 @arg('recording_az_mode', option=['--az-mode'],
      help='When download the recording files the files are arranged in directory structure mimic Azure CLI '
           'source code.')
+@arg('raw', help='For debug.')
 def get_run(run_id: str, log: bool = False, recording: bool = False, recording_az_mode: bool = False,
-            show_all: bool = False) -> None:
+            show_all: bool = False, raw: bool = False) -> None:
     try:
         tasks = a01.models.TaskCollection.get(run_id=run_id)
         output_in_table(tasks.get_table_view(failed=not show_all), headers=tasks.get_table_header())
@@ -66,6 +78,10 @@ def get_run(run_id: str, log: bool = False, recording: bool = False, recording_a
             print('Download recordings ...')
             for task in tasks.tasks:
                 task.download_recording(log_path_template, recording_az_mode)
+
+        if raw:
+            run = a01.models.Run.get(run_id=run_id)
+            print(json.dumps(run.to_dict(), indent=2))
     except ValueError as err:
         logger.error(err)
         sys.exit(1)
@@ -75,10 +91,7 @@ def get_run(run_id: str, log: bool = False, recording: bool = False, recording_a
 @arg('image', help='The droid image to run.', positional=True)
 @arg('parallelism', option=('-p', '--parallelism'),
      help='The number of job to run in parallel. Can be scaled later through kubectl.')
-@arg('dry_run', option=('--dryrun', '--dry-run'), help='List the tasks instead of actually schedule a run.',
-     action='store_true')
 @arg('from_failures', option=['--from-failures'], help='Create the run base on the failed tasks of another run')
-@arg('path_prefix', option=['--prefix'], help='Filter the task base on the test path prefix')
 @arg('live', help='Run test live')
 @arg('mode', help='The mode in which the test is run. The option accept a string which will be passed on to the pod as '
                   'an environment variable. The meaning of the string is open for interpretations.')
@@ -86,67 +99,85 @@ def get_run(run_id: str, log: bool = False, recording: bool = False, recording_a
 @arg('remark', help='The addition information regarding to this run. Specify "official" will trigger an email '
                     'notification to the entire team after the job finishes.')
 @arg('email', help='Send an email to you after the job finishes.')
-@arg('skip_kube', option=['--skip-kubernetes'], help='Create tasks in task store without schedule Kubernetes jobs. '
-                                                     'It is used mainly in testing scenarios.')
 @arg('secret', help='The name of the secret to be used. Default to the image\'s a01.product label.')
+@arg('reset_run', option=['--reset-run'], help='Reset a run')
 # pylint: disable=too-many-arguments, too-many-locals
-def create_run(image: str, path_prefix: str = None, from_failures: str = None, dry_run: bool = False,
-               live: bool = False, parallelism: int = 3, query: str = None, remark: str = None, email: bool = False,
-               skip_kube: bool = False, secret: str = None, mode: str = None) -> None:
+def create_run(image: str, from_failures: str = None, live: bool = False, parallelism: int = 3, query: str = None,
+               remark: str = '', email: bool = False, secret: str = None, mode: str = None,
+               reset_run: str = None) -> None:
     remark = remark or ''
     try:
-        droid_image = DroidImage(image)
-        job_name = f'{droid_image.product_name}-{base64.b32encode(os.urandom(12)).decode("utf-8").lower()}'.rstrip('=')
-        candidates = droid_image.list_tasks(query=query)
+        if not reset_run:
+            run_model = a01.models.Run(name=f'Azure CLI Test @ {image}',
+                                       settings={
+                                           'a01.reserved.imagename': image,
+                                           'a01.reserved.imagepullsecret': 'azureclidev-acr',
+                                           'a01.reserved.secret': secret,
+                                           'a01.reserved.storageshare': 'k8slog',
+                                           'a01.reserved.testquery': query,
+                                           'a01.reserved.remark': remark,
+                                           'a01.reserved.useremail': get_user_id() if email else '',
+                                           'a01.reserved.initparallelism': parallelism,
+                                           'a01.reserved.livemode': str(live),
+                                           'a01.reserved.testmode': mode,
+                                           'a01.reserved.fromrunfailure': from_failures,
+                                       },
+                                       details={
+                                           'a01.reserved.creator': get_user_id(),
+                                           'a01.reserved.client': 'A01 CLI'
+                                       })
 
-        if path_prefix:
-            candidates = [c for c in candidates if c['classifier']['identifier'].startswith(path_prefix)]
+            # prune
+            to_delete = [k for k, v in run_model.settings.items() if not v]
+            for k in to_delete:
+                del run_model.settings[k]
+            to_delete = [k for k, v in run_model.details.items() if not v]
+            for k in to_delete:
+                del run_model.details[k]
 
-        if from_failures:
-            failed_tasks = set(
-                task.settings['classifier']['identifier'] for task in
-                a01.models.TaskCollection.get(from_failures).get_failed_tasks())
-            candidates = [c for c in candidates if c['classifier']['identifier'] in failed_tasks]
+            run_name = run_model.post()
+            print(f'Created: {run_name}')
+        else:
+            run_name = reset_run
+            print(f'Reset: {run_name}')
 
-        if dry_run:
-            for index, each in enumerate(candidates, start=1):
-                print(f' {index}\t{each["classifier"]["identifier"]}')
-
-            sys.exit(0)
-
+        # create manage job
         kube_config.load_kube_config()
         api = kube_client.BatchV1Api()
 
-        run_model = a01.models.Run(name=f'Azure CLI Test @ {image}',
-                                   settings={
-                                       'droid_image': image,
-                                   },
-                                   details={
-                                       'creator': os.environ.get('USER', os.environ.get('USERNAME', 'Unknown')),
-                                       'client': 'A01 CLI',
-                                       'live': str(live),
-                                       'remark': remark,
-                                       'secret': secret or droid_image.product_name,
-                                       'product': droid_image.product_name
-                                   })
+        random_tag = base64.b32encode(os.urandom(4)).decode("utf-8").lower().rstrip('=')
+        job_name = f'ctrl-{run_name}-{random_tag}'
+        labels = {'run_id': str(run_name), 'run_live': str(live)}
 
-        run_name = run_model.post()
+        api.create_namespaced_job(
+            namespace='az',
+            body=V1Job(
+                api_version="batch/v1",
+                kind="Job",
+                metadata=V1ObjectMeta(name=job_name, labels=labels),
+                spec=V1JobSpec(
+                    backoff_limit=3,
+                    template=V1PodTemplateSpec(
+                        metadata=V1ObjectMeta(name=job_name, labels=labels),
+                        spec=V1PodSpec(
+                            containers=[V1Container(
+                                name='main',
+                                image=image,
+                                command=['/app/a01dispatcher', '-run', str(run_name)],
+                                env=[
+                                    V1EnvVar(name='A01_STORE_NAME', value='task-store-web-service-internal/api'),
+                                    V1EnvVar(name='A01_INTERNAL_COMKEY', value_from=V1EnvVarSource(
+                                        secret_key_ref=V1SecretKeySelector(name='a01store', key='internal.key'))),
+                                    V1EnvVar(name='ENV_POD_NAME', value_from=V1EnvVarSource(
+                                        field_ref=V1ObjectFieldSelector(field_path='metadata.name')))
+                                ]
+                            )],
+                            image_pull_secrets=[V1LocalObjectReference(name=COMMON_IMAGE_PULL_SECRET)],
+                            restart_policy='Never')
+                    )
+                )))
 
-        tasks = [a01.models.Task(name=f'Test: {c["classifier"]["identifier"]}', annotation=image, settings=c) for c in
-                 candidates]
-        task_collection = a01.models.TaskCollection(tasks=tasks, run_id=run_name)
-        task_collection.post()
-
-        if skip_kube:
-            sys.exit(0)
-
-        run_model = a01.models.Run.get(run_name)
-        test_job = JobTemplate(name=job_name, run_id=run_name, image=droid_image, parallelism=parallelism,
-                               secret_name=secret, live=live, mode=mode).get_body()
-        monitor_job = MonitorTemplate(run=run_model, email=get_user_id() if email else None).get_body()
-        api.create_namespaced_job(namespace='az', body=test_job)
-        api.create_namespaced_job(namespace='az', body=monitor_job)
-        print(json.dumps({'run': run_name, 'job': job_name, 'monitor': f'a01-monitor-{run_name}'}, indent=2))
+        sys.exit(0)
     except ValueError as ex:
         logger.error(ex)
         sys.exit(1)

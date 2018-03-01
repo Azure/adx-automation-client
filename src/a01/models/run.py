@@ -57,7 +57,7 @@ class Run(object):
             raise ValueError('Failed to deserialize the response content.')
 
     def get_log_path_template(self) -> str:
-        run_secret_name = self.details.get('secret', None)
+        run_secret_name = self.details.get('secret', None) or self.details.get('a01.reserved.product', None)
         if run_secret_name:
             kube_config.load_kube_config()
             secret = kube_client.CoreV1Api().read_namespaced_secret(name=run_secret_name, namespace=NAMESPACE)
@@ -90,9 +90,10 @@ class RunCollection(object):
     def get_table_view(self) -> Generator[List, None, None]:
         for run in self.runs:
             time = (run.creation - datetime.timedelta(hours=8)).strftime('%Y-%m-%d %H:%M PST')
-            remark = run.details.get('remark', '')
+            remark = run.details.get('remark', None) or run.settings.get('a01.reserved.remark', '')
+            owner = run.details.get('creator', None) or run.details.get('a01.reserved.creator', '')
 
-            row = [run.id, run.name, time, remark]
+            row = [run.id, run.name, time, remark, owner]
             if remark and remark.lower() == 'official':
                 for i, column in enumerate(row):
                     row[i] = colorama.Style.BRIGHT + str(column) + colorama.Style.RESET_ALL
@@ -101,7 +102,7 @@ class RunCollection(object):
 
     @staticmethod
     def get_table_header() -> Tuple:
-        return 'Id', 'Name', 'Creation', 'Remark'
+        return 'Id', 'Name', 'Creation', 'Remark', 'Owner'
 
     @classmethod
     def get(cls) -> 'RunCollection':
@@ -110,6 +111,8 @@ class RunCollection(object):
             resp.raise_for_status()
 
             runs = [Run.from_dict(each) for each in resp.json()]
+            runs = sorted(runs, key=lambda r: r.id)
+
             return RunCollection(runs)
         except HTTPError:
             cls.logger.debug('HttpError', exc_info=True)
