@@ -9,7 +9,6 @@ from kubernetes import config as kube_config
 from kubernetes import client as kube_client
 from kubernetes.client import V1ObjectFieldSelector
 
-from kubernetes.client.models.v1_config_map_key_selector import V1ConfigMapKeySelector
 from kubernetes.client.models.v1_job import V1Job
 from kubernetes.client.models.v1_job_spec import V1JobSpec
 from kubernetes.client.models.v1_object_meta import V1ObjectMeta
@@ -29,6 +28,8 @@ from a01.auth import get_user_id
 from a01.output import output_in_table
 
 logger = get_logger(__name__)  # pylint: disable=invalid-name
+
+# pylint: disable=too-many-arguments
 
 
 @cmd('get runs', desc='Retrieve the runs.')
