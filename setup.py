@@ -49,7 +49,6 @@ setup(
         'a01',
         'a01.models',
         'a01.output',
-        'a01.jobs',
         'a01.docker',
     ],
     package_dir={
