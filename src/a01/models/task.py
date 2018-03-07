@@ -61,7 +61,10 @@ class Task(object):  # pylint: disable=too-many-instance-attributes
 
     def get_log_content(self, log_path_template: str) -> Generator[str, None, None]:
         log_path = log_path_template.format(f'{self.run_id}/task_{self.id}.log')
-        for index, line in enumerate(requests.get(log_path).content.decode('utf-8').split('\n')):
+        resp = requests.get(log_path)
+        if resp.status_code == 404:
+            yield '>', 'Log not found (task might still be running, or storage was not setup for this run)\n'
+        for index, line in enumerate(resp.content.decode('utf-8').split('\n')):
             yield '>', f' {index}\t{line}'
 
     def get_table_view(self) -> Tuple[str, ...]:
