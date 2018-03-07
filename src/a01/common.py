@@ -66,3 +66,4 @@ class A01Config(configparser.ConfigParser):  # pylint: disable=too-many-ancestor
     @property
     def endpoint_uri(self) -> str:
         return f'https://{self.endpoint}/api'
+        # return 'http://127.0.0.1:5000/api'

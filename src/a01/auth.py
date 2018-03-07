@@ -141,6 +141,22 @@ class AuthSettings(object):
             self.logger.exception(f'Fail to save the file {TOKEN_FILE}')
             raise
 
+    def get_user_name(self) -> str:
+        """Returns the name of current user. For a user account, it returns its user id. For a service principal, it
+        returns its service principal ID."""
+        if not self.has_login:
+            print('You need to login. Usage: a01 login.')
+            sys.exit(1)
+
+        try:
+            return self.user_id
+        except AuthenticationError:
+            try:
+                return self.service_principal_id
+            except AuthenticationError:
+                print("Fail to find user name. Tried both user id and service principal.", file=sys.stderr)
+                sys.exit(1)
+
     @staticmethod
     def _get_auth_context() -> adal.AuthenticationContext:
         return adal.AuthenticationContext(AUTHORITY_URL, api_version=None)
@@ -209,18 +225,3 @@ def whoami() -> None:
         print(AuthSettings().summary)
     except AuthenticationError:
         print('You need to login. Usage: a01 login.')
-
-
-def get_user_id() -> str:
-    try:
-        return AuthSettings().user_id
-    except AuthenticationError:
-        print('You need to login. Usage: a01 login.')
-        sys.exit(1)
-
-def get_service_principal_id() -> str:
-    try:
-        return AuthSettings().service_principal_id
-    except AuthenticationError:
-        print('You need to login. Usage: a01 login.')
-        sys.exit(1)

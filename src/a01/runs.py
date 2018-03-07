@@ -20,11 +20,12 @@ from kubernetes.client.models.v1_env_var import V1EnvVar
 from kubernetes.client.models.v1_env_var_source import V1EnvVarSource
 from kubernetes.client.models.v1_secret_key_selector import V1SecretKeySelector
 
+import a01
 import a01.models
 from a01.common import get_logger, A01Config, COMMON_IMAGE_PULL_SECRET
 from a01.cli import cmd, arg
 from a01.communication import session
-from a01.auth import get_user_id, get_service_principal_id
+from a01.auth import AuthSettings, AuthenticationError
 from a01.output import output_in_table
 
 logger = get_logger(__name__)  # pylint: disable=invalid-name
@@ -33,13 +34,27 @@ logger = get_logger(__name__)  # pylint: disable=invalid-name
 
 
 @cmd('get runs', desc='Retrieve the runs.')
-def get_runs() -> None:
+@arg('owner', help='Query runs by owner.')
+@arg('me', help='Query runs created by me.')
+@arg('last', help='Returns the last NUMBER of records. Default: 20.')
+@arg('skip', help='Returns the records after skipping given number of records at the bottom. Default: 0.')
+def get_runs(me: bool = False, last: int = 20, skip: int = 0, owner: str = None) -> None:  # pylint: disable=invalid-name
     try:
-        runs = a01.models.RunCollection.get()
+        if me and owner:
+            raise ValueError('--me and --user are mutually exclusive.')
+        elif me:
+            owner = AuthSettings().get_user_name()
+
+        runs = a01.models.RunCollection.get(owner=owner, last=last, skip=skip)
         output_in_table(runs.get_table_view(), headers=runs.get_table_header())
     except ValueError as err:
         logger.error(err)
         sys.exit(1)
+    except AuthenticationError as err:
+        logger.error(err)
+        print('You need to login. Usage: a01 login.', file=sys.stderr)
+        sys.exit(1)
+
 
 
 @cmd('get run', desc='Retrieve a run')
@@ -106,8 +121,9 @@ def get_run(run_id: str, log: bool = False, recording: bool = False, recording_a
 def create_run(image: str, from_failures: str = None, live: bool = False, parallelism: int = 3, query: str = None,
                remark: str = '', email: bool = False, secret: str = None, mode: str = None,
                reset_run: str = None) -> None:
+    auth = AuthSettings()
     remark = remark or ''
-    creator = get_user_id() if email else get_service_principal_id()
+    creator = auth.get_user_name()
 
     try:
         if not reset_run:
@@ -119,7 +135,7 @@ def create_run(image: str, from_failures: str = None, live: bool = False, parall
                                            'a01.reserved.storageshare': 'k8slog',
                                            'a01.reserved.testquery': query,
                                            'a01.reserved.remark': remark,
-                                           'a01.reserved.useremail': get_user_id() if email else '',
+                                           'a01.reserved.useremail': auth.user_id if email else '',
                                            'a01.reserved.initparallelism': parallelism,
                                            'a01.reserved.livemode': str(live),
                                            'a01.reserved.testmode': mode,
@@ -127,8 +143,9 @@ def create_run(image: str, from_failures: str = None, live: bool = False, parall
                                        },
                                        details={
                                            'a01.reserved.creator': creator,
-                                           'a01.reserved.client': 'A01 CLI'
-                                       })
+                                           'a01.reserved.client': f'CLI {a01.__version__}'
+                                       },
+                                       owner=creator)
 
             # prune
             to_delete = [k for k, v in run_model.settings.items() if not v]

@@ -1,6 +1,7 @@
 import json
 import datetime
 import base64
+import urllib
 from typing import List, Tuple, Generator
 
 import colorama
@@ -15,10 +16,11 @@ from a01.common import get_logger, A01Config, NAMESPACE
 class Run(object):
     logger = get_logger('Run')
 
-    def __init__(self, name: str, settings: dict, details: dict):
+    def __init__(self, name: str, settings: dict, details: dict, owner: str = None):
         self.name = name
         self.settings = settings
         self.details = details
+        self.owner = owner
 
         self.id = None  # pylint: disable=invalid-name
         self.creation = None
@@ -27,7 +29,8 @@ class Run(object):
         result = {
             'name': self.name,
             'settings': self.settings,
-            'details': self.details
+            'details': self.details,
+            'owner': self.owner
         }
 
         return result
@@ -71,6 +74,7 @@ class Run(object):
         result = Run(name=data['name'], settings=data['settings'], details=data['details'])
         result.id = data['id']
         result.creation = datetime.datetime.strptime(data['creation'], '%Y-%m-%dT%H:%M:%SZ')
+        result.owner = data.get('owner', None)
 
         return result
 
@@ -91,7 +95,7 @@ class RunCollection(object):
         for run in self.runs:
             time = (run.creation - datetime.timedelta(hours=8)).strftime('%Y-%m-%d %H:%M PST')
             remark = run.details.get('remark', None) or run.settings.get('a01.reserved.remark', '')
-            owner = run.details.get('creator', None) or run.details.get('a01.reserved.creator', '')
+            owner = run.owner or run.details.get('creator', None) or run.details.get('a01.reserved.creator', '')
 
             row = [run.id, run.name, time, remark, owner]
             if remark and remark.lower() == 'official':
@@ -105,13 +109,22 @@ class RunCollection(object):
         return 'Id', 'Name', 'Creation', 'Remark', 'Owner'
 
     @classmethod
-    def get(cls) -> 'RunCollection':
+    def get(cls, **kwargs) -> 'RunCollection':
         try:
-            resp = session.get(f'{cls.endpoint_uri()}/runs')
+            url = f'{cls.endpoint_uri()}/runs'
+            query = {}
+            for key, value in kwargs.items():
+                if value is not None:
+                    query[key] = value
+
+            if query:
+                url = f'{url}?{urllib.parse.urlencode(query)}'
+
+            resp = session.get(url)
             resp.raise_for_status()
 
             runs = [Run.from_dict(each) for each in resp.json()]
-            runs = sorted(runs, key=lambda r: r.id)
+            runs = sorted(runs, key=lambda r: r.id, reverse=True)
 
             return RunCollection(runs)
         except HTTPError:

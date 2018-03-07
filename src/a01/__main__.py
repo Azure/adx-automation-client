@@ -1,3 +1,11 @@
+from a01 import __version__
+from a01.cli import cmd
+
+@cmd('version', desc='Print version information')
+def version() -> None:
+    print(__version__)
+
+
 def main() -> None:
     from a01.cli import setup_commands
 

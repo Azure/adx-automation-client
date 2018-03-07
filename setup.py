@@ -1,20 +1,27 @@
 #!/usr/bin/env python3
 
 import os
+import sys
 import datetime
 from setuptools import setup
 
-def get_version() -> str:
-    if "TRAVIS" in os.environ:
-        tag = os.environ.get('TRAVIS_TAG', None)
-        if tag:
-            return tag
-        else:
-            return f'0.0.0.{os.environ["TRAVIS_BUILD_NUMBER"]}'
-    return f'0.0.0.{datetime.datetime.now().strftime("%Y%m%d%H%M%S")}'
+ROOT_INIT = os.path.join(os.path.dirname(__file__), 'src', 'a01', '__init__.py')
+VERSION = os.environ.get('TRAVIS_TAG')
 
+try:
+    if VERSION:
+        with open(ROOT_INIT, 'w') as file_handler:
+            file_handler.write(f'__version__ = {VERSION}')
+    else:
+        with open(ROOT_INIT, 'r') as file_handler:
+            line = file_handler.readline()
+            VERSION = line.split('=')[1].strip()
+except (ValueError, IOError):
+    print('Fail to pass version string.', file=sys.stderr, flush=True)
+    sys.exit(1)
 
-VERSION = get_version()
+with open('HISTORY.rst', 'r', encoding='utf-8') as f:
+    HISTORY = f.read()
 
 CLASSIFIERS = [
     'Development Status :: 4 - Beta',
@@ -40,7 +47,7 @@ setup(
     name='adx-automation-cli',
     version=VERSION,
     description='ADX Automation CLI',
-    long_description='Command line tools for ADX automation system',
+    long_description=HISTORY,
     license='MIT',
     author='Microsoft Corporation',
     author_email='trdai@microsoft.com',

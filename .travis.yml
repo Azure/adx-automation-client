@@ -12,4 +12,4 @@ script:
 - pylint src
 - export
 - ./setup.py bdist_wheel
-- ./publish.sh
+- ./scripts/publish.sh
