@@ -58,6 +58,10 @@ class AuthSettings(object):
         return self._get_token_value('userId')
 
     @property
+    def service_principal_id(self) -> str:
+        return self._get_token_value('_clientId')
+
+    @property
     def refresh_token(self) -> str:
         return self._get_token_value('refreshToken')
 
@@ -210,6 +214,13 @@ def whoami() -> None:
 def get_user_id() -> str:
     try:
         return AuthSettings().user_id
+    except AuthenticationError:
+        print('You need to login. Usage: a01 login.')
+        sys.exit(1)
+
+def get_service_principal_id() -> str:
+    try:
+        return AuthSettings().service_principal_id
     except AuthenticationError:
         print('You need to login. Usage: a01 login.')
         sys.exit(1)

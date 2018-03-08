@@ -24,7 +24,7 @@ import a01.models
 from a01.common import get_logger, A01Config, COMMON_IMAGE_PULL_SECRET
 from a01.cli import cmd, arg
 from a01.communication import session
-from a01.auth import get_user_id
+from a01.auth import get_user_id, get_service_principal_id
 from a01.output import output_in_table
 
 logger = get_logger(__name__)  # pylint: disable=invalid-name
@@ -107,6 +107,8 @@ def create_run(image: str, from_failures: str = None, live: bool = False, parall
                remark: str = '', email: bool = False, secret: str = None, mode: str = None,
                reset_run: str = None) -> None:
     remark = remark or ''
+    creator = get_user_id() if email else get_service_principal_id()
+
     try:
         if not reset_run:
             run_model = a01.models.Run(name=f'Azure CLI Test @ {image}',
@@ -124,7 +126,7 @@ def create_run(image: str, from_failures: str = None, live: bool = False, parall
                                            'a01.reserved.fromrunfailure': from_failures,
                                        },
                                        details={
-                                           'a01.reserved.creator': get_user_id(),
+                                           'a01.reserved.creator': creator,
                                            'a01.reserved.client': 'A01 CLI'
                                        })
 
