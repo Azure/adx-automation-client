@@ -11,7 +11,7 @@ VERSION = os.environ.get('TRAVIS_TAG')
 try:
     if VERSION:
         with open(ROOT_INIT, 'w') as file_handler:
-            file_handler.write(f'__version__ = {VERSION}')
+            file_handler.write(f"__version__ = '{VERSION}'")
     else:
         with open(ROOT_INIT, 'r') as file_handler:
             line = file_handler.readline()
