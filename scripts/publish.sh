@@ -5,14 +5,6 @@ if [ -z $TRAVIS_TAG ]; then
     exit 0
 fi
 
-if ! command -v az > /dev/null 2>&1; then
-    echo "deb [arch=amd64] https://packages.microsoft.com/repos/azure-cli/ `lsb_release -cs` main" | tee /etc/apt/sources.list.d/azure-cli.list
-    apt-key adv --keyserver packages.microsoft.com --recv-keys 52E16F86FEE04B979B07E28DB02C46DF417A0893
-    apt-get install -y apt-transport-https
-    apt-get -qq update && sudo apt-get install -y azure-cli
-fi
-
-
 cd dist
 wheel_file=`ls adx_automation_cli-*-py3-none-any.whl`
 
