@@ -22,7 +22,7 @@ from kubernetes.client.models.v1_secret_key_selector import V1SecretKeySelector
 
 import a01
 import a01.models
-from a01.common import get_logger, A01Config, COMMON_IMAGE_PULL_SECRET
+from a01.common import get_logger, A01Config, NAMESPACE
 from a01.cli import cmd, arg
 from a01.communication import session
 from a01.auth import AuthSettings, AuthenticationError
@@ -130,7 +130,7 @@ def create_run(image: str, from_failures: str = None, live: bool = False, parall
             run_model = a01.models.Run(name=f'Azure CLI Test @ {image}',
                                        settings={
                                            'a01.reserved.imagename': image,
-                                           'a01.reserved.imagepullsecret': 'azureclidev-acr',
+                                           'a01.reserved.imagepullsecret': 'azureclidev-registry',
                                            'a01.reserved.secret': secret,
                                            'a01.reserved.storageshare': 'k8slog',
                                            'a01.reserved.testquery': query,
@@ -170,7 +170,7 @@ def create_run(image: str, from_failures: str = None, live: bool = False, parall
         labels = {'run_id': str(run_name), 'run_live': str(live)}
 
         api.create_namespaced_job(
-            namespace='az',
+            namespace=NAMESPACE,
             body=V1Job(
                 api_version="batch/v1",
                 kind="Job",
@@ -185,14 +185,14 @@ def create_run(image: str, from_failures: str = None, live: bool = False, parall
                                 image=image,
                                 command=['/app/a01dispatcher', '-run', str(run_name)],
                                 env=[
-                                    V1EnvVar(name='A01_STORE_NAME', value='task-store-web-service-internal/api'),
+                                    V1EnvVar(name='A01_STORE_NAME', value='store-internal-svc/api'),
                                     V1EnvVar(name='A01_INTERNAL_COMKEY', value_from=V1EnvVarSource(
-                                        secret_key_ref=V1SecretKeySelector(name='a01store', key='internal.key'))),
+                                        secret_key_ref=V1SecretKeySelector(name='store-secrets', key='comkey'))),
                                     V1EnvVar(name='ENV_POD_NAME', value_from=V1EnvVarSource(
                                         field_ref=V1ObjectFieldSelector(field_path='metadata.name')))
                                 ]
                             )],
-                            image_pull_secrets=[V1LocalObjectReference(name=COMMON_IMAGE_PULL_SECRET)],
+                            image_pull_secrets=[V1LocalObjectReference(name='azureclidev-registry')],
                             restart_policy='Never')
                     )
                 )))

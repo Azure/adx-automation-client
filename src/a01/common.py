@@ -19,12 +19,7 @@ IS_WINDOWS = sys.platform.lower() in ['windows', 'win32']
 
 coloredlogs.install(level=os.environ.get('A01_DEBUG', 'ERROR'))
 
-NAMESPACE = 'az'
-
-EMAIL_ACCOUNT_SECRET_NAME = 'a01monitor'
-EMAIL_SERVICE_FAIL_RESET_LIMIT = 5
-
-COMMON_IMAGE_PULL_SECRET = 'azureclidev-acr'
+NAMESPACE = 'a01-prod'
 
 
 def get_logger(name: str) -> logging.Logger:
@@ -66,4 +61,3 @@ class A01Config(configparser.ConfigParser):  # pylint: disable=too-many-ancestor
     @property
     def endpoint_uri(self) -> str:
         return f'https://{self.endpoint}/api'
-        # return 'http://127.0.0.1:5000/api'
