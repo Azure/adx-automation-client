@@ -42,7 +42,7 @@ class Task(object):  # pylint: disable=too-many-instance-attributes
         result = {
             'name': self.name,
             'annotation': self.annotation,
-            'settings': self.settings
+            'settings': self.settings,
         }
 
         return result
@@ -68,8 +68,7 @@ class Task(object):  # pylint: disable=too-many-instance-attributes
             yield '>', f' {index}\t{line}'
 
     def get_table_view(self) -> Tuple[str, ...]:
-        return self.id, self.name, self.status, self.result, self.result_details.get('agent', None), \
-               self.result_details.get('duration', None)
+        return self.id, self.name, self.status, self.result, self.result_details.get('agent', None), self.duration
 
     @staticmethod
     def get_table_header() -> Tuple[str, ...]:

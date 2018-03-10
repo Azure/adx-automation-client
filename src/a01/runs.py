@@ -8,7 +8,6 @@ import colorama
 from kubernetes import config as kube_config
 from kubernetes import client as kube_client
 from kubernetes.client import V1ObjectFieldSelector
-
 from kubernetes.client.models.v1_job import V1Job
 from kubernetes.client.models.v1_job_spec import V1JobSpec
 from kubernetes.client.models.v1_object_meta import V1ObjectMeta
@@ -19,6 +18,9 @@ from kubernetes.client.models.v1_local_object_reference import V1LocalObjectRefe
 from kubernetes.client.models.v1_env_var import V1EnvVar
 from kubernetes.client.models.v1_env_var_source import V1EnvVarSource
 from kubernetes.client.models.v1_secret_key_selector import V1SecretKeySelector
+from kubernetes.client.models.v1_volume_mount import V1VolumeMount
+from kubernetes.client.models.v1_volume import V1Volume
+from kubernetes.client.models.v1_azure_file_volume_source import V1AzureFileVolumeSource
 
 import a01
 import a01.models
@@ -54,7 +56,6 @@ def get_runs(me: bool = False, last: int = 20, skip: int = 0, owner: str = None)
         logger.error(err)
         print('You need to login. Usage: a01 login.', file=sys.stderr)
         sys.exit(1)
-
 
 
 @cmd('get run', desc='Retrieve a run')
@@ -116,14 +117,16 @@ def get_run(run_id: str, log: bool = False, recording: bool = False, recording_a
                     'notification to the entire team after the job finishes.')
 @arg('email', help='Send an email to you after the job finishes.')
 @arg('secret', help='The name of the secret to be used. Default to the image\'s a01.product label.')
+@arg('agent', help='The version of the agent to be used. Default to latest.')
 @arg('reset_run', option=['--reset-run'], help='Reset a run')
 # pylint: disable=too-many-arguments, too-many-locals
 def create_run(image: str, from_failures: str = None, live: bool = False, parallelism: int = 3, query: str = None,
                remark: str = '', email: bool = False, secret: str = None, mode: str = None,
-               reset_run: str = None) -> None:
+               reset_run: str = None, agent: str = 'latest') -> None:
     auth = AuthSettings()
     remark = remark or ''
     creator = auth.get_user_name()
+    agent = agent.replace('.', '-')
 
     try:
         if not reset_run:
@@ -140,6 +143,7 @@ def create_run(image: str, from_failures: str = None, live: bool = False, parall
                                            'a01.reserved.livemode': str(live),
                                            'a01.reserved.testmode': mode,
                                            'a01.reserved.fromrunfailure': from_failures,
+                                           'a01.reserved.agentver': agent,
                                        },
                                        details={
                                            'a01.reserved.creator': creator,
@@ -183,16 +187,22 @@ def create_run(image: str, from_failures: str = None, live: bool = False, parall
                             containers=[V1Container(
                                 name='main',
                                 image=image,
-                                command=['/app/a01dispatcher', '-run', str(run_name)],
+                                command=['/mnt/agents/a01dispatcher', '-run', str(run_name)],
                                 env=[
-                                    V1EnvVar(name='A01_STORE_NAME', value='store-internal-svc/api'),
                                     V1EnvVar(name='A01_INTERNAL_COMKEY', value_from=V1EnvVarSource(
                                         secret_key_ref=V1SecretKeySelector(name='store-secrets', key='comkey'))),
                                     V1EnvVar(name='ENV_POD_NAME', value_from=V1EnvVarSource(
                                         field_ref=V1ObjectFieldSelector(field_path='metadata.name')))
+                                ],
+                                volume_mounts=[
+                                    V1VolumeMount(mount_path='/mnt/agents', name='agents-storage', read_only=True)
                                 ]
                             )],
                             image_pull_secrets=[V1LocalObjectReference(name='azureclidev-registry')],
+                            volumes=[V1Volume(name='agents-storage',
+                                              azure_file=V1AzureFileVolumeSource(read_only=True,
+                                                                                 secret_name='agent-secrets',
+                                                                                 share_name=f'linux-{agent}'))],
                             restart_policy='Never')
                     )
                 )))
