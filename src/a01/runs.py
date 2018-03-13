@@ -149,7 +149,8 @@ def create_run(image: str, from_failures: str = None, live: bool = False, parall
                                            'a01.reserved.creator': creator,
                                            'a01.reserved.client': f'CLI {a01.__version__}'
                                        },
-                                       owner=creator)
+                                       owner=creator,
+                                       status='Initialized')
 
             # prune
             to_delete = [k for k, v in run_model.settings.items() if not v]

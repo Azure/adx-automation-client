@@ -16,11 +16,12 @@ from a01.common import get_logger, A01Config, NAMESPACE
 class Run(object):
     logger = get_logger('Run')
 
-    def __init__(self, name: str, settings: dict, details: dict, owner: str = None):
+    def __init__(self, name: str, settings: dict, details: dict, owner: str, status: str) -> None:
         self.name = name
         self.settings = settings
         self.details = details
         self.owner = owner
+        self.status = status
 
         self.id = None  # pylint: disable=invalid-name
         self.creation = None
@@ -30,7 +31,8 @@ class Run(object):
             'name': self.name,
             'settings': self.settings,
             'details': self.details,
-            'owner': self.owner
+            'owner': self.owner,
+            'status': self.status
         }
 
         return result
@@ -71,10 +73,13 @@ class Run(object):
 
     @staticmethod
     def from_dict(data: dict) -> 'Run':
-        result = Run(name=data['name'], settings=data['settings'], details=data['details'])
+        result = Run(name=data['name'],
+                     settings=data['settings'],
+                     details=data['details'],
+                     owner=data.get('owner', None),
+                     status=data.get('status', 'N/A'))
         result.id = data['id']
         result.creation = datetime.datetime.strptime(data['creation'], '%Y-%m-%dT%H:%M:%SZ')
-        result.owner = data.get('owner', None)
 
         return result
 
@@ -96,8 +101,9 @@ class RunCollection(object):
             time = (run.creation - datetime.timedelta(hours=8)).strftime('%Y-%m-%d %H:%M PST')
             remark = run.details.get('remark', None) or run.settings.get('a01.reserved.remark', '')
             owner = run.owner or run.details.get('creator', None) or run.details.get('a01.reserved.creator', '')
+            status = run.status
 
-            row = [run.id, run.name, time, remark, owner]
+            row = [run.id, run.name, time, status, remark, owner]
             if remark and remark.lower() == 'official':
                 for i, column in enumerate(row):
                     row[i] = colorama.Style.BRIGHT + str(column) + colorama.Style.RESET_ALL
@@ -106,7 +112,7 @@ class RunCollection(object):
 
     @staticmethod
     def get_table_header() -> Tuple:
-        return 'Id', 'Name', 'Creation', 'Remark', 'Owner'
+        return 'Id', 'Name', 'Creation', 'Status', 'Remark', 'Owner'
 
     @classmethod
     def get(cls, **kwargs) -> 'RunCollection':
