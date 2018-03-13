@@ -24,8 +24,8 @@ def check_environment():
     result &= verify_item('Azure Container Service login', 'az aks get-credentials -n az-devex -g az-devex-kube',
                           'The current az account must allow you to login container service az-devex.')
     result &= verify_item('Kubernete CLI', 'kubectl version', 'Install kubectl using "az aks install-cli" command.')
-    result &= verify_item('Kubernete namespace az', 'kubectl get namespace az',
-                          'The cluster must have a namespace named az associated. You may not have log in your '
+    result &= verify_item('Kubernete namespace a01-prod', 'kubectl get namespace a01-prod',
+                          'The cluster must have a namespace named a01-prod associated. You may not have log in your '
                           'kubectrl with correct AKS service. Run "az aks get-credentials -n <aks_service>" to login.')
 
     sys.exit(0 if result else 1)
