@@ -35,41 +35,44 @@ This example is showing all the required fields. However, the test list might al
 
 - Have an `app` folder with:
   - `get_index` program. This program should print the test list.
-  - `a01droid` binary, you can get it in https://a01tools.blob.core.windows.net/droid/latest/linux/a01droid . Find more [info about the a01droid](https://github.com/Azure/adx-automation-agent).
+  - `metadata.yml` file. This file will include settings for your runs.
 
 The `app` folder might also have a `prepare_pod` and/or and `after_test` program.
 
-- Have the following labels:
+At the end, run a01droid. You can learm more about a01droid [here](https://github.com/Azure/adx-automation-agent).
 
 ``` dockerfile
-LABEL a01.product="<your-product-name>"
-LABEL a01.index.schema="v2"
-```
-
-Other labels can be added, for example, if tests run with specific credentials set as environment variables:
-
-``` dockerfile
-LABEL a01.env.AZ_CLIENT_SECRET="secret:<your-secret-data-key-in-kubernetes>"
-```
-
-- And at the end, run the a01droid:
-
-``` dockerfile
-CMD app/droid
+CMD /mnt/agents/a01droid
 ```
 
 The container image should be pushed to our container registry before creating a run. This can be done as part of CI when checking in code to your product's repo, so tests can be run with all the newest changes.
 
-In case you want to use a mount volume during the run, add this to the dockerfile. For example, the Azure CLI tests use this to store HTTP recordings, with the `after_test` program.
+## Metadata YAML file
 
-``` dockerfile
-LABEL a01.setting.storage="True"
+A file for adding setting to your test runs. It should have this properties:
+
+``` yaml
+kind: DroidMetadata
+version: v3
+product: <your-product-name>
+storage: true
 ```
 
-A01 client has a `--mode` flag, which can be used when creating runs (run `a01 create run -h` to get more info). Mode flag will set the value for an env var that can be included in the dockerfile.
+More settings can be added, for example, if tests run with specific credentials set as environment variables:
 
-``` dockerfile
-LABEL a01.env.YOUR_ENV_VAR="arg-mode"
+``` yaml
+environments:
+  - name: <your-environment-variable-name>
+    type: secret
+    value: <your-secret-data-key-in-kubernetes>
+```
+
+A01 client has a `--mode` flag, which can be used when creating runs (run `a01 create run -h` to get more info). Mode flag will set the value for an env var that can be included in the metadata file.
+
+``` yaml
+environments:
+  - name: <your-environment-variable-name>
+    type: argument-value-mode
 ```
 
 ## Logs storage account
@@ -105,4 +108,4 @@ metadata:
 type: Opaque
 ```
 
-The kubernetes secret's name value, should be exactly the same as the value for the `a01.product` label in the dockerfile. The data keys that are not rquired (for example, the `cred` data key), should have the same key as whatever the `a01.env.VAR_NAME` label has as value in the dockerfile, minus the `secret:` prefix.
+The kubernetes secret's name value, should be exactly the same as the value for the `product` label in the `metadata.yml` file. The data keys that are not rquired (for example, the `cred` data key), should have the same name as they have in the `metadata.yml` file.

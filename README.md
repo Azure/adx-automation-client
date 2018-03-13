@@ -41,7 +41,8 @@ $ curl -s https://a01tools.blob.core.windows.net/client/latest | xargs pip insta
 ## Initialize
 
 - Run `a01 check` to validate environment.
-- Run `a01 login --endpoint a01.azclitest.com` to login.
+- Run `a01 login --endpoint secondapi.azclitest.com` to login.
+- Run `az aks get-credentials -g adx-automation-a01 -n adx-automation` to get cluster creds.
 
 ## Onboard your own tests
 
