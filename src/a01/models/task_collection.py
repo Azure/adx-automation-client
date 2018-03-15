@@ -14,7 +14,7 @@ class TaskCollection(object):
     logger = get_logger('TaskCollection')
 
     def __init__(self, tasks: List[Task], run_id: str) -> None:
-        self.tasks = tasks
+        self.tasks = sorted(tasks, key=lambda t: t.identifier)
         self.run_name = run_id
 
     def get_failed_tasks(self) -> Generator[Task, None, None]:

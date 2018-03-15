@@ -23,6 +23,10 @@ class Task(object):  # pylint: disable=too-many-instance-attributes
         self.duration = None  # int
         self.run_id = None
 
+    @property
+    def identifier(self) -> str:
+        return self.settings['classifier']['identifier']
+
     @classmethod
     def get(cls, task_id: str) -> 'Task':
         try:
