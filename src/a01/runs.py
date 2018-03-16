@@ -29,8 +29,10 @@ from a01.cli import cmd, arg
 from a01.communication import session
 from a01.auth import AuthSettings, AuthenticationError
 from a01.output import output_in_table
+from a01.kube import create_controller_job, clean_up_jobs
 
 logger = get_logger(__name__)  # pylint: disable=invalid-name
+
 
 # pylint: disable=too-many-arguments
 
@@ -40,7 +42,8 @@ logger = get_logger(__name__)  # pylint: disable=invalid-name
 @arg('me', help='Query runs created by me.')
 @arg('last', help='Returns the last NUMBER of records. Default: 20.')
 @arg('skip', help='Returns the records after skipping given number of records at the bottom. Default: 0.')
-def get_runs(me: bool = False, last: int = 20, skip: int = 0, owner: str = None) -> None:  # pylint: disable=invalid-name
+def get_runs(me: bool = False, last: int = 20, skip: int = 0,
+             owner: str = None) -> None:  # pylint: disable=invalid-name
     try:
         if me and owner:
             raise ValueError('--me and --user are mutually exclusive.')
@@ -118,105 +121,63 @@ def get_run(run_id: str, log: bool = False, recording: bool = False, recording_a
 @arg('email', help='Send an email to you after the job finishes.')
 @arg('secret', help='The name of the secret to be used. Default to the image\'s a01.product label.')
 @arg('agent', help='The version of the agent to be used. Default to latest.')
-@arg('reset_run', option=['--reset-run'], help='Reset a run')
 # pylint: disable=too-many-arguments, too-many-locals
 def create_run(image: str, from_failures: str = None, live: bool = False, parallelism: int = 3, query: str = None,
                remark: str = '', email: bool = False, secret: str = None, mode: str = None,
-               reset_run: str = None, agent: str = 'latest') -> None:
+               agent: str = 'latest') -> None:
     auth = AuthSettings()
     remark = remark or ''
     creator = auth.get_user_name()
     agent = agent.replace('.', '-')
 
     try:
-        if not reset_run:
-            run_model = a01.models.Run(name=f'Azure CLI Test @ {image}',
-                                       settings={
-                                           'a01.reserved.imagename': image,
-                                           'a01.reserved.imagepullsecret': 'azureclidev-registry',
-                                           'a01.reserved.secret': secret,
-                                           'a01.reserved.storageshare': 'k8slog',
-                                           'a01.reserved.testquery': query,
-                                           'a01.reserved.remark': remark,
-                                           'a01.reserved.useremail': auth.user_id if email else '',
-                                           'a01.reserved.initparallelism': parallelism,
-                                           'a01.reserved.livemode': str(live),
-                                           'a01.reserved.testmode': mode,
-                                           'a01.reserved.fromrunfailure': from_failures,
-                                           'a01.reserved.agentver': agent,
-                                       },
-                                       details={
-                                           'a01.reserved.creator': creator,
-                                           'a01.reserved.client': f'CLI {a01.__version__}'
-                                       },
-                                       owner=creator,
-                                       status='Initialized')
+        run_model = a01.models.Run(name=f'Azure CLI Test @ {image}',
+                                   settings={
+                                       'a01.reserved.imagename': image,
+                                       'a01.reserved.imagepullsecret': 'azureclidev-registry',
+                                       'a01.reserved.secret': secret,
+                                       'a01.reserved.storageshare': 'k8slog',
+                                       'a01.reserved.testquery': query,
+                                       'a01.reserved.remark': remark,
+                                       'a01.reserved.useremail': auth.user_id if email else '',
+                                       'a01.reserved.initparallelism': parallelism,
+                                       'a01.reserved.livemode': str(live),
+                                       'a01.reserved.testmode': mode,
+                                       'a01.reserved.fromrunfailure': from_failures,
+                                       'a01.reserved.agentver': agent,
+                                   },
+                                   details={
+                                       'a01.reserved.creator': creator,
+                                       'a01.reserved.client': f'CLI {a01.__version__}'
+                                   },
+                                   owner=creator,
+                                   status='Initialized')
 
-            # prune
-            to_delete = [k for k, v in run_model.settings.items() if not v]
-            for k in to_delete:
-                del run_model.settings[k]
-            to_delete = [k for k, v in run_model.details.items() if not v]
-            for k in to_delete:
-                del run_model.details[k]
+        run = run_model.post()
+        print(f'Published run {run.id}')
 
-            run_name = run_model.post()
-            print(f'Created: {run_name}')
-        else:
-            run_name = reset_run
-            print(f'Reset: {run_name}')
-
-        # create manage job
-        kube_config.load_kube_config()
-        api = kube_client.BatchV1Api()
-
-        random_tag = base64.b32encode(os.urandom(4)).decode("utf-8").lower().rstrip('=')
-        job_name = f'ctrl-{run_name}-{random_tag}'
-        labels = {'run_id': str(run_name), 'run_live': str(live)}
-
-        api.create_namespaced_job(
-            namespace=NAMESPACE,
-            body=V1Job(
-                api_version="batch/v1",
-                kind="Job",
-                metadata=V1ObjectMeta(name=job_name, labels=labels),
-                spec=V1JobSpec(
-                    backoff_limit=3,
-                    template=V1PodTemplateSpec(
-                        metadata=V1ObjectMeta(name=job_name, labels=labels),
-                        spec=V1PodSpec(
-                            containers=[V1Container(
-                                name='main',
-                                image=image,
-                                command=['/mnt/agents/a01dispatcher', '-run', str(run_name)],
-                                env=[
-                                    V1EnvVar(name='A01_INTERNAL_COMKEY', value_from=V1EnvVarSource(
-                                        secret_key_ref=V1SecretKeySelector(name='store-secrets', key='comkey'))),
-                                    V1EnvVar(name='ENV_POD_NAME', value_from=V1EnvVarSource(
-                                        field_ref=V1ObjectFieldSelector(field_path='metadata.name')))
-                                ],
-                                volume_mounts=[
-                                    V1VolumeMount(mount_path='/mnt/agents', name='agents-storage', read_only=True)
-                                ]
-                            )],
-                            image_pull_secrets=[V1LocalObjectReference(name='azureclidev-registry')],
-                            volumes=[V1Volume(name='agents-storage',
-                                              azure_file=V1AzureFileVolumeSource(read_only=True,
-                                                                                 secret_name='agent-secrets',
-                                                                                 share_name=f'linux-{agent}'))],
-                            restart_policy='Never')
-                    )
-                )))
-
+        create_controller_job(run)
         sys.exit(0)
     except ValueError as ex:
         logger.error(ex)
         sys.exit(1)
 
 
+@cmd('restart run', desc='Restart a run. This command is used when the Kubernetes Job behaves abnormally. It will '
+                         'create new group of controller job and test job with the same settings.')
+@arg('run_id', help='Then run to restart', positional=True)
+def restart_run(run_id: str):
+    run = a01.models.Run.get(run_id)
+
+    clean_up_jobs(run)
+    create_controller_job(run)
+
+
 @cmd('delete run', desc='Delete a run as well as the tasks associate with it.')
 @arg('run_id', help='Ids of the run to be deleted.', positional=True)
 def delete_run(run_id: str) -> None:
     config = A01Config()
+    run = a01.models.Run.get(run_id)
+    clean_up_jobs(run)
     resp = session.delete(f'{config.endpoint_uri}/run/{run_id}')
     resp.raise_for_status()

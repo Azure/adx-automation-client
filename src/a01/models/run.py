@@ -26,6 +26,14 @@ class Run(object):
         self.id = None  # pylint: disable=invalid-name
         self.creation = None
 
+        # prune
+        to_delete = [k for k, v in self.settings.items() if not v]
+        for k in to_delete:
+            del self.settings[k]
+        to_delete = [k for k, v in self.details.items() if not v]
+        for k in to_delete:
+            del self.details[k]
+
     def to_dict(self) -> dict:
         result = {
             'name': self.name,
@@ -45,15 +53,15 @@ class Run(object):
             return Run.from_dict(resp.json())
         except HTTPError:
             cls.logger.debug('HttpError', exc_info=True)
-            raise ValueError('Failed to create run in the task store.')
+            raise ValueError('Failed to find the run in the task store.')
         except (json.JSONDecodeError, TypeError):
             cls.logger.debug('JsonError', exc_info=True)
             raise ValueError('Failed to deserialize the response content.')
 
-    def post(self) -> str:
+    def post(self) -> 'Run':
         try:
             resp = session.post(f'{self.endpoint_uri()}/run', json=self.to_dict())
-            return resp.json()['id']
+            return Run.from_dict(resp.json())
         except HTTPError:
             self.logger.debug('HttpError', exc_info=True)
             raise ValueError('Failed to create run in the task store.')
