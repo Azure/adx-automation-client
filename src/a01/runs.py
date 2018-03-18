@@ -1,40 +1,21 @@
-import base64
 import json
 import sys
-import os
 from itertools import zip_longest
 
 import colorama
-from kubernetes import config as kube_config
-from kubernetes import client as kube_client
-from kubernetes.client import V1ObjectFieldSelector
-from kubernetes.client.models.v1_job import V1Job
-from kubernetes.client.models.v1_job_spec import V1JobSpec
-from kubernetes.client.models.v1_object_meta import V1ObjectMeta
-from kubernetes.client.models.v1_container import V1Container
-from kubernetes.client.models.v1_pod_spec import V1PodSpec
-from kubernetes.client.models.v1_pod_template_spec import V1PodTemplateSpec
-from kubernetes.client.models.v1_local_object_reference import V1LocalObjectReference
-from kubernetes.client.models.v1_env_var import V1EnvVar
-from kubernetes.client.models.v1_env_var_source import V1EnvVarSource
-from kubernetes.client.models.v1_secret_key_selector import V1SecretKeySelector
-from kubernetes.client.models.v1_volume_mount import V1VolumeMount
-from kubernetes.client.models.v1_volume import V1Volume
-from kubernetes.client.models.v1_azure_file_volume_source import V1AzureFileVolumeSource
 
 import a01
 import a01.models
-from a01.common import get_logger, A01Config, NAMESPACE
+from a01.common import get_logger, A01Config
 from a01.cli import cmd, arg
 from a01.communication import session
 from a01.auth import AuthSettings, AuthenticationError
 from a01.output import output_in_table
 from a01.kube import create_controller_job, clean_up_jobs
 
-logger = get_logger(__name__)  # pylint: disable=invalid-name
+# pylint: disable=too-many-arguments, invalid-name
 
-
-# pylint: disable=too-many-arguments
+logger = get_logger(__name__)
 
 
 @cmd('get runs', desc='Retrieve the runs.')
