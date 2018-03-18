@@ -57,6 +57,7 @@ setup(
         'a01.models',
         'a01.output',
         'a01.docker',
+        'a01.kube',
     ],
     package_dir={
         '': 'src'
