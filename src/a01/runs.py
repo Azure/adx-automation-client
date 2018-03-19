@@ -11,7 +11,6 @@ from a01.cli import cmd, arg
 from a01.communication import session
 from a01.auth import AuthSettings, AuthenticationError
 from a01.output import output_in_table
-from a01.kube import create_controller_job, clean_up_jobs
 
 # pylint: disable=too-many-arguments, invalid-name
 
@@ -137,7 +136,6 @@ def create_run(image: str, from_failures: str = None, live: bool = False, parall
         run = run_model.post()
         print(f'Published run {run.id}')
 
-        create_controller_job(run)
         sys.exit(0)
     except ValueError as ex:
         logger.error(ex)
@@ -148,17 +146,14 @@ def create_run(image: str, from_failures: str = None, live: bool = False, parall
                          'create new group of controller job and test job with the same settings.')
 @arg('run_id', help='Then run to restart', positional=True)
 def restart_run(run_id: str):
-    run = a01.models.Run.get(run_id)
-
-    clean_up_jobs(run)
-    create_controller_job(run)
+    config = A01Config()
+    resp = session.post(f'{config.endpoint_uri}/run/{run_id}/restart')
+    resp.raise_for_status()
 
 
 @cmd('delete run', desc='Delete a run as well as the tasks associate with it.')
 @arg('run_id', help='Ids of the run to be deleted.', positional=True)
 def delete_run(run_id: str) -> None:
     config = A01Config()
-    run = a01.models.Run.get(run_id)
-    clean_up_jobs(run)
     resp = session.delete(f'{config.endpoint_uri}/run/{run_id}')
     resp.raise_for_status()
