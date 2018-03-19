@@ -16,8 +16,8 @@ from a01.common import get_logger, A01Config, NAMESPACE
 class Run(object):
     logger = get_logger('Run')
 
-    def __init__(self, name: str, settings: dict, details: dict, owner: str,
-                 status: str) -> None:  # pylint: disable=too-many-arguments
+    def __init__(self, name: str, settings: dict, details: dict, owner: str,  # pylint: disable=too-many-arguments
+                 status: str) -> None:
         self.name = name
         self.settings = settings
         self.details = details
