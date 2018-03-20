@@ -15,7 +15,6 @@ def main() -> None:
     __import__('a01.images')
     __import__('a01.config')
     __import__('a01.auth')
-    __import__('a01.secrets')
     parser = setup_commands()
 
     args = parser.parse_args()

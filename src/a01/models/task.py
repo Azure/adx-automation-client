@@ -63,8 +63,11 @@ class Task(object):  # pylint: disable=too-many-instance-attributes
 
         return result
 
-    def get_log_content(self, log_path_template: str) -> Generator[str, None, None]:
-        log_path = log_path_template.format(f'{self.run_id}/task_{self.id}.log')
+    def get_log_content(self) -> Generator[str, None, None]:
+        log_path = self.result_details.get('a01.reserved.tasklogpath', None)
+        if not log_path:
+            return
+
         resp = requests.get(log_path)
         if resp.status_code == 404:
             yield '>', 'Log not found (task might still be running, or storage was not setup for this run)\n'
@@ -78,8 +81,11 @@ class Task(object):  # pylint: disable=too-many-instance-attributes
     def get_table_header() -> Tuple[str, ...]:
         return 'Id', 'Name', 'Status', 'Result', 'Agent', 'Duration(ms)'
 
-    def download_recording(self, log_path_template: str, az_mode: bool) -> None:
-        recording_path = log_path_template.format(f'{self.run_id}/recording_{self.id}.yaml')
+    def download_recording(self, az_mode: bool) -> None:
+        recording_path = self.result_details.get('a01.reserved.taskrecordpath', None)
+        if not recording_path:
+            return
+
         resp = requests.get(recording_path)
         if resp.status_code != 200:
             return
@@ -89,7 +95,7 @@ class Task(object):  # pylint: disable=too-many-instance-attributes
             module_name = path_paths[3]
             method_name = path_paths[-1]
             profile_name = path_paths[-4]
-            recording_path = os.path.join('recording', f'azure-cli-{module_name}', 'azure', 'cli', 'command_module',
+            recording_path = os.path.join('recording', f'azure-cli-{module_name}', 'azure', 'cli', 'command_modules',
                                           module_name, 'tests', profile_name, 'recordings', f'{method_name}.yaml')
         else:
             path_paths[-1] = path_paths[-1] + '.yaml'
