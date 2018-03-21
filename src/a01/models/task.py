@@ -27,6 +27,10 @@ class Task(object):  # pylint: disable=too-many-instance-attributes
     def identifier(self) -> str:
         return self.settings['classifier']['identifier']
 
+    @property
+    def command(self) -> str:
+        return self.settings['execution']['command']
+
     @classmethod
     def get(cls, task_id: str) -> 'Task':
         try:

@@ -32,6 +32,14 @@ class Run(object):
         for k in to_delete:
             del self.details[k]
 
+    @property
+    def image(self) -> str:
+        return self.settings['a01.reserved.imagename']
+
+    @property
+    def product(self) -> str:
+        return self.details['a01.reserved.product']
+
     def to_dict(self) -> dict:
         result = {
             'name': self.name,
