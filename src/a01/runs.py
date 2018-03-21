@@ -110,8 +110,11 @@ def create_run(image: str, from_failures: str = None, live: bool = False, parall
     creator = auth.get_user_name()
     agent = agent.replace('.', '-')
 
+    reg, image_name = image.split('/', 1)
+    reg = reg.split('.')[0]
+
     try:
-        run_model = a01.models.Run(name=f'Azure CLI Test @ {image}',
+        run_model = a01.models.Run(name=f'Run of {image_name} from {reg}',
                                    settings={
                                        'a01.reserved.imagename': image,
                                        'a01.reserved.imagepullsecret': 'azureclidev-registry',
