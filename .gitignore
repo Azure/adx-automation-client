@@ -110,3 +110,6 @@ secret.yaml
 # User data
 recording/
 .idea/
+
+# Azure Config
+.azure-config/
