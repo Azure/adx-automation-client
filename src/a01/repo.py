@@ -85,7 +85,8 @@ def reproduce_task(task_id: str, live: bool = False, interactive: bool = False, 
         else:
             print('Run task in local container ...\n')
 
-            cont = client.containers.run(run.image, task.command, environment=repo_environment_variables, detach=True)
+            command = f'/bin/bash -c "if [ -e /app/prepare_pod ]; then /app/prepare_pod; fi; {task.command}"'
+            cont = client.containers.run(run.image, command, environment=repo_environment_variables, detach=True)
             cont.wait()
             print('\nRun finished ...\n')
 
