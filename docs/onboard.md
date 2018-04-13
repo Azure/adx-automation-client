@@ -109,3 +109,69 @@ type: Opaque
 ```
 
 The kubernetes secret's name value, should be exactly the same as the value for the `product` label in the `metadata.yml` file. The data keys that are not rquired (for example, the `cred` data key), should have the same name as they have in the `metadata.yml` file.
+
+## Emails (optional)
+
+### Recipients
+
+Receive notification emails after tests runs have finished. Use the `--remark official` flag when creating runs to send emails to your team. The recipient list should be set in your product's Kubernetes secret, with key `owners`.
+A01 can also send emails with weekly summaries (Mondays at 7AM). Set the recipients list on the product's Kubernetes secret, with key `owners.weekly`.
+
+### Customize
+
+A01 can send generic emails, but you might want to customize the email for your product. First, create a [Jinja2](http://jinja.pocoo.org/docs/2.10/) template. Upload it to a storage account (you can use the same storage account used for logs), and get its SAS URI. Provide the SAS URI in your product's Kubernetes secret, with key `email.path.template`, or `email.path.template.weekly`. Good examples are the [generic email template](https://github.com/Azure/adx-automation-services/blob/master/services/email/app/app/templates/generic.html), and the [generic weekly email template](https://github.com/Azure/adx-automation-services/blob/master/services/newsletter/app/templates/generic.html).
+
+
+```yaml
+apiVersion: v1
+data:
+  owners: <comma-separated-emails>
+  owners.weekly: <comma-separated-emails>
+  email.path.template: <SAS-URI-to-jinja2-template>
+  email.path.template.weekly: <SAS-URI-to-jinja2-template>
+kind: Secret
+metadata:
+  name: <your-product-name>
+type: Opaque
+```
+
+## PowerBI reports (optional)
+
+A01 has support for PowerBI reports displaying test run results. It can refresh a dataset once the test run has finished.
+
+### Create and share your PowerBI report
+
+The report's data source is a PostgreSQL database (you will need the database creds to create the report). After you have finished your report, publish it to your team's workspace. The same user that is setup to send emails on test runs, should be added to the PBI workspace. Login as that user to the PowerBI portal, and make it take ownership on the dataset previously shared on the workspace. Setup an on-premises data gateway ([documentation here](https://powerbi.microsoft.com/en-us/gateway/)) that connects to the PostgreSQL database and provide it with the database credentials. The gateway is required to be able to refresh data.
+
+### Refresh your dataset on every test run
+
+A01 needs PowerBI credentials to refresh datasets, and they should set on the `email` kubernetes secret.
+
+```yaml
+apiVersion: v1
+data:
+  username: <email-acount>
+  password:  <email-password>
+  powerbi.client.id:  <PowerBI-client-ID>
+kind: Secret
+metadata:
+  name: email
+type: Opaque
+```
+
+To get a client ID, [register an app on Azure AD](https://docs.microsoft.com/en-us/power-bi/developer/walkthrough-push-data-register-app-with-azure-ad). The app should be set to `Native app`, and should have the `Read And Write All Datasets` permission.
+
+Required parameters to refresh a dataset are its `groupID` and `datasetID`. Add this values to your product's Kuberenetes secret:
+
+```yaml
+apiVersion: v1
+data:
+  powerbi.dataset: <PowerBI-dataset>
+  powerbi.group: <PowerBI-group>
+kind: Secret
+metadata:
+  name: <your-product-name>
+type: Opaque
+```
+
+A little note on PowerBI refreshes: depending on your workspace capacity, it might be [limit to 8 refreshes per day](https://powerbi.microsoft.com/en-us/blog/announcing-data-refresh-apis-in-the-power-bi-service/). A01 is set up to only refresh datasets on runs started with the `--remark official` flag.
