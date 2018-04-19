@@ -67,6 +67,16 @@ environments:
     value: <your-secret-data-key-in-kubernetes>
 ```
 
+To inject credentials as files, add this:
+
+``` yaml
+secretFiles:
+  - path: <your-relative-file-path>
+    secretKey: <your-secret-data-key-in-kubernetes>
+```
+
+Your file content should be added to your product's Kubernetes secret. Secret files will be placed in `/mnt/secrets` volume.
+
 A01 client has a `--mode` flag, which can be used when creating runs (run `a01 create run -h` to get more info). Mode flag will set the value for an env var that can be included in the metadata file.
 
 ``` yaml
