@@ -5,6 +5,7 @@ import colorama
 import a01.cli
 import a01.models
 from a01.output import output_in_table
+from a01.operations import query_tasks
 
 
 @a01.cli.cmd('get task', desc='Retrieve tasks information.')
@@ -18,8 +19,9 @@ from a01.output import output_in_table
              help='When download the recording files the files are arranged in directory structure mimic Azure CLI '
                   'source code.')
 def get_task(ids: [str], log: bool = False, recording: bool = False, recording_az_mode: bool = False) -> None:
-    for task_id in ids:
-        task = a01.models.Task.get(task_id=task_id)
+    tasks = query_tasks(ids)
+
+    for task in tasks:
         output_in_table(zip_longest(task.get_table_header(), task.get_table_view()), tablefmt='plain')
 
         if log:

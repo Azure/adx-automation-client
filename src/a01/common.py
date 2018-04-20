@@ -42,10 +42,12 @@ class A01Config(configparser.ConfigParser):  # pylint: disable=too-many-ancestor
             get_logger(__class__.__name__).error(f'Fail to write config file {CONFIG_FILE}')
             return False
 
-    def ensure_config(self) -> None:
+    def ensure_config(self) -> 'A01Config':
         if not os.path.isfile(CONFIG_FILE) or 'endpoint' not in self:
             self.logger.error(f'Cannot load configuration file: {CONFIG_FILE}. Run a01 login --endpoint <ENDPOINT>.')
             sys.exit(1)
+
+        return self
 
     @property
     def endpoint(self) -> str:
