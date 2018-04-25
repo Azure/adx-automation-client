@@ -22,22 +22,6 @@ def check_environment():
                           'az account set -s 6b085460-5f21-477e-ba44-1035046e9101',
                           'The current az login failed to sign in '
                           '6b085460-5f21-477e-ba44-1035046e9101 subscription')
-    result &= verify_item('Azure Container Registry login',
-                          f'az acr login -n {DROID_CONTAINER_REGISTRY}',
-                          'The current az account must allow you to login container '
-                          f'registry {DROID_CONTAINER_REGISTRY}.')
-    result &= verify_item('Azure Container Service login',
-                          'az aks get-credentials -n adx-automation -g adx-automation-a01',
-                          'The current az account must allow you to login container service '
-                          'adx-automation.')
-    result &= verify_item('Kubernete CLI',
-                          'kubectl version',
-                          'Install kubectl using "az aks install-cli" command.')
-    result &= verify_item('Kubernete namespace a01-prod',
-                          'kubectl get namespace a01-prod',
-                          'The cluster must have a namespace named a01-prod associated. You may '
-                          'not have log in your kubectrl with correct AKS service. Run "az aks '
-                          'get-credentials -n <aks_service>" to login.')
 
     sys.exit(0 if result else 1)
 

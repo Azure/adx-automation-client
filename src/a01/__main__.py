@@ -11,7 +11,6 @@ def main() -> None:
     from a01.cli import setup_commands
 
     __import__('a01.runs')
-    __import__('a01.images')
     __import__('a01.config')
     __import__('a01.auth')
     __import__('a01.repo')
