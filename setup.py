@@ -56,9 +56,11 @@ setup(
     url='https://github.com/Azure/adx-automation-client',
     packages=[
         'a01',
+        'a01.commands',
         'a01.models',
+        'a01.operations',
         'a01.output',
-        'a01.docker'
+        'a01.transport',
     ],
     package_dir={
         '': 'src'
