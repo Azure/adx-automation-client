@@ -12,8 +12,8 @@ from a01.output import output_in_table
 @arg('me', help='Query runs created by me.')
 @arg('last', help='Returns the last NUMBER of records. Default: 20.')
 @arg('skip', help='Returns the records after skipping given number of records at the bottom. Default: 0.')
-def get_runs(me: bool = False, last: int = 20, skip: int = 0,
-             owner: str = None) -> None:  # pylint: disable=invalid-name
+def get_runs(me: bool = False, last: int = 20, skip: int = 0,  # pylint: disable=invalid-name
+             owner: str = None) -> None:
     logger = logging.getLogger(__name__)
     try:
         if me and owner:

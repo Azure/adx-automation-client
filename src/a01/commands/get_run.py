@@ -3,12 +3,12 @@ import logging
 import json
 from itertools import zip_longest
 
+import colorama
+
 from a01.cli import cmd, arg
 from a01.output import output_in_table
 from a01.models import TaskCollection
 from a01.operations import query_tasks_by_run, query_run
-
-import colorama
 
 
 @cmd('get run', desc='Retrieve a run')
