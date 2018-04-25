@@ -1,25 +1,19 @@
 from urllib.parse import urlencode
 
 import asyncio
-import aiohttp
 
-from a01.auth import AuthSettings
-from a01.common import A01Config
 from a01.models import Run, RunsView
+from a01.transport import AsyncSession
 
 
 async def query_run_async(run_id: str) -> Run:
-    endpoint = A01Config().ensure_config().endpoint_uri
-    async with aiohttp.ClientSession(headers={'Authorization': AuthSettings().access_token}) as session:
-        async with session.get(f'{endpoint}/run/{run_id}') as resp:
-            json_body = await resp.json()
-            return Run.from_dict(json_body)
+    async with AsyncSession() as session:
+        return Run.from_dict(session.get_json(f'run/{run_id}'))
 
 
 async def query_runs_async(**kwargs) -> RunsView:
-    endpoint = A01Config().ensure_config().endpoint_uri
-    async with aiohttp.ClientSession(headers={'Authorization': AuthSettings().access_token}) as session:
-        url = f'{endpoint}/runs'
+    async with AsyncSession() as session:
+        url = 'runs'
         query = {}
         for key, value in kwargs.items():
             if value is not None:
@@ -28,9 +22,8 @@ async def query_runs_async(**kwargs) -> RunsView:
         if query:
             url = f'{url}?{urlencode(query)}'
 
-        async with session.get(url) as resp:
-            json_body = await resp.json()
-            return RunsView(runs=[Run.from_dict(each) for each in json_body])
+        json_body = await session.get_json(url)
+        return RunsView(runs=[Run.from_dict(each) for each in json_body])
 
 
 def query_run(run_id: str) -> Run:

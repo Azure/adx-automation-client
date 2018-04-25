@@ -1,31 +1,23 @@
 from typing import List
 
 import asyncio
-import aiohttp
 
-from a01.auth import AuthSettings
-from a01.common import A01Config
 from a01.models import Task
+from a01.transport import AsyncSession
 
 
 async def query_tasks_async(ids: List[str]) -> List[Task]:
     results = []
-    endpoint = A01Config().ensure_config().endpoint_uri
-    async with aiohttp.ClientSession(headers={'Authorization': AuthSettings().access_token}) as session:
+    async with AsyncSession() as session:
         for task_id in ids:
-            async with session.get(f'{endpoint}/task/{task_id}') as resp:
-                json_body = await resp.json()
-                results.append(Task.from_dict(json_body))
+            results.append(Task.from_dict(await session.get_json(f'task/{task_id}')))
 
     return results
 
 
 async def query_tasks_by_run_async(run_id: str) -> List[Task]:
-    endpoint = A01Config().ensure_config().endpoint_uri
-    async with aiohttp.ClientSession(headers={'Authorization': AuthSettings().access_token}) as session:
-        async with session.get(f'{endpoint}/run/{run_id}/tasks') as resp:
-            json_body = await resp.json()
-            return [Task.from_dict(data) for data in json_body]
+    async with AsyncSession() as session:
+        return [Task.from_dict(each) for each in await session.get_json(f'run/{run_id}/tasks')]
 
 
 def query_tasks(ids: List[str]) -> List[Task]:
