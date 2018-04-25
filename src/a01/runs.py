@@ -1,84 +1,15 @@
-import json
 import sys
-from itertools import zip_longest
-
-import colorama
 
 import a01
 import a01.models
 from a01.common import get_logger, A01Config
 from a01.cli import cmd, arg
 from a01.communication import session
-from a01.auth import AuthSettings, AuthenticationError
-from a01.output import output_in_table
+from a01.auth import AuthSettings
 
 # pylint: disable=too-many-arguments, invalid-name
 
 logger = get_logger(__name__)
-
-
-@cmd('get runs', desc='Retrieve the runs.')
-@arg('owner', help='Query runs by owner.')
-@arg('me', help='Query runs created by me.')
-@arg('last', help='Returns the last NUMBER of records. Default: 20.')
-@arg('skip', help='Returns the records after skipping given number of records at the bottom. Default: 0.')
-def get_runs(me: bool = False, last: int = 20, skip: int = 0,
-             owner: str = None) -> None:  # pylint: disable=invalid-name
-    try:
-        if me and owner:
-            raise ValueError('--me and --user are mutually exclusive.')
-        elif me:
-            owner = AuthSettings().get_user_name()
-
-        runs = a01.models.RunCollection.get(owner=owner, last=last, skip=skip)
-        output_in_table(runs.get_table_view(), headers=runs.get_table_header())
-    except ValueError as err:
-        logger.error(err)
-        sys.exit(1)
-    except AuthenticationError as err:
-        logger.error(err)
-        print('You need to login. Usage: a01 login.', file=sys.stderr)
-        sys.exit(1)
-
-
-@cmd('get run', desc='Retrieve a run')
-@arg('run_id', help='The run id.', positional=True)
-@arg('log', help="Include the failed tasks' logs.", option=('-l', '--log'))
-@arg('recording', option=('-r', '--recording'),
-     help='Download the recording files in recording directory at current working directory. The recordings '
-          'are flatten with the full test path as the file name if --az-mode is not specified. If --az-mode is '
-          'set, the recording files are arranged in directory structure mimic Azure CLI source code.')
-@arg('show_all', option=['--show-all'], help='Show all the tasks results.')
-@arg('recording_az_mode', option=['--az-mode'],
-     help='When download the recording files the files are arranged in directory structure mimic Azure CLI '
-          'source code.')
-@arg('raw', help='For debug.')
-def get_run(run_id: str, log: bool = False, recording: bool = False, recording_az_mode: bool = False,
-            show_all: bool = False, raw: bool = False) -> None:
-    try:
-        tasks = a01.models.TaskCollection.get(run_id=run_id)
-        output_in_table(tasks.get_table_view(failed=not show_all), headers=tasks.get_table_header())
-        output_in_table(tasks.get_summary(), tablefmt='plain')
-
-        if log:
-            for failure in tasks.get_failed_tasks():
-                output_in_table(zip_longest(failure.get_table_header(), failure.get_table_view()), tablefmt='plain')
-                output_in_table(failure.get_log_content(), tablefmt='plain', foreground_color=colorama.Fore.CYAN)
-
-            output_in_table(tasks.get_summary(), tablefmt='plain')
-
-        if recording:
-            print()
-            print('Download recordings ...')
-            for task in tasks.tasks:
-                task.download_recording(recording_az_mode)
-
-        if raw:
-            run = a01.models.Run.get(run_id=run_id)
-            print(json.dumps(run.to_dict(), indent=2))
-    except ValueError as err:
-        logger.error(err)
-        sys.exit(1)
 
 
 @cmd('create run', desc='Create a new run.')

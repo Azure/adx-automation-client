@@ -1,6 +1,5 @@
 import json
 import datetime
-import urllib
 from typing import List, Tuple, Generator
 
 import colorama
@@ -94,9 +93,7 @@ class Run(object):
         return config.endpoint_uri
 
 
-class RunCollection(object):
-    logger = get_logger('RunCollection')
-
+class RunsView(object):
     def __init__(self, runs: List[Run]) -> None:
         self.runs = runs
 
@@ -117,35 +114,3 @@ class RunCollection(object):
     @staticmethod
     def get_table_header() -> Tuple:
         return 'Id', 'Name', 'Creation', 'Status', 'Remark', 'Owner'
-
-    @classmethod
-    def get(cls, **kwargs) -> 'RunCollection':
-        try:
-            url = f'{cls.endpoint_uri()}/runs'
-            query = {}
-            for key, value in kwargs.items():
-                if value is not None:
-                    query[key] = value
-
-            if query:
-                url = f'{url}?{urllib.parse.urlencode(query)}'
-
-            resp = session.get(url)
-            resp.raise_for_status()
-
-            runs = [Run.from_dict(each) for each in resp.json()]
-            runs = sorted(runs, key=lambda r: r.id, reverse=True)
-
-            return RunCollection(runs)
-        except HTTPError:
-            cls.logger.debug('HttpError', exc_info=True)
-            raise ValueError('Fail to get runs.')
-        except (KeyError, json.JSONDecodeError, TypeError):
-            cls.logger.debug('JsonError', exc_info=True)
-            raise ValueError('Fail to parse the runs data.')
-
-    @staticmethod
-    def endpoint_uri():
-        config = A01Config()
-        config.ensure_config()
-        return config.endpoint_uri
