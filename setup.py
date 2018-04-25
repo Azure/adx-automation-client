@@ -41,7 +41,8 @@ DEPENDENCIES = [
     'adal>=0.5.0',
     'docker~=3.0.0',
     'kubernetes~=4.0.0',
-    'docker~=3.0.0'
+    'docker~=3.0.0',
+    'aiohttp~=3.1.3',
 ]
 
 setup(
