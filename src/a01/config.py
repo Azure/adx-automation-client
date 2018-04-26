@@ -7,7 +7,7 @@ from subprocess import check_output, CalledProcessError, STDOUT
 import colorama
 
 import a01.cli
-from a01.common import DROID_CONTAINER_REGISTRY, IS_WINDOWS
+from a01.common import IS_WINDOWS
 from a01.communication import session
 
 

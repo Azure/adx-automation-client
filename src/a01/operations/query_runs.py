@@ -8,7 +8,7 @@ from a01.transport import AsyncSession
 
 async def query_run_async(run_id: str) -> Run:
     async with AsyncSession() as session:
-        return Run.from_dict(session.get_json(f'run/{run_id}'))
+        return Run.from_dict(await session.get_json(f'run/{run_id}'))
 
 
 async def query_runs_async(**kwargs) -> RunsView:
