@@ -1,4 +1,5 @@
 import argparse
+import asyncio
 import inspect
 from typing import Callable, Collection
 
@@ -145,7 +146,10 @@ class CommandDefinition(object):
         logger.info(f'execute [{self.name}] -> {self.func}')
 
         kwargs = {parameter: getattr(args, parameter) for parameter in self.signature.parameters}
-        return self.func(**kwargs)
+        if inspect.iscoroutinefunction(self.func):
+            return asyncio.get_event_loop().run_until_complete(self.func(**kwargs))
+        else:
+            return self.func(**kwargs)
 
     def setup(self, parser: argparse.ArgumentParser) -> None:
         parser.description = self.description

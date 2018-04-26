@@ -8,7 +8,7 @@ import colorama
 from a01.cli import cmd, arg
 from a01.output import output_in_table
 from a01.models import TaskCollection
-from a01.operations import query_tasks_by_run, query_run
+from a01.operations import query_tasks_by_run_async, query_run_async
 
 
 @cmd('get run', desc='Retrieve a run')
@@ -23,12 +23,13 @@ from a01.operations import query_tasks_by_run, query_run
      help='When download the recording files the files are arranged in directory structure mimic Azure CLI '
           'source code.')
 @arg('raw', help='For debug.')
-def get_run(run_id: str, log: bool = False, recording: bool = False, recording_az_mode: bool = False,
+async def get_run(run_id: str, log: bool = False, recording: bool = False, recording_az_mode: bool = False,
             show_all: bool = False, raw: bool = False) -> None:
     logger = logging.getLogger(__name__)
 
     try:
-        tasks = TaskCollection(query_tasks_by_run(run_id), run_id)
+        tasks = await query_tasks_by_run_async(run_id)
+        tasks = TaskCollection(tasks, run_id)
         output_in_table(tasks.get_table_view(failed=not show_all), headers=tasks.get_table_header())
         output_in_table(tasks.get_summary(), tablefmt='plain')
 
@@ -46,7 +47,7 @@ def get_run(run_id: str, log: bool = False, recording: bool = False, recording_a
                 task.download_recording(recording_az_mode)
 
         if raw:
-            run = query_run(run_id=run_id)
+            run = await query_run_async(run_id=run_id)
             print(json.dumps(run.to_dict(), indent=2))
     except ValueError as err:
         logger.error(err)
