@@ -101,7 +101,6 @@ ENV/
 .mypy_cache/
 
 # IDE and Editor
-.vscode/
 .idea/workspace.xml
 
 # Kubernetes
