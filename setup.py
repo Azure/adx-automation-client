@@ -57,6 +57,7 @@ setup(
     packages=[
         'a01',
         'a01.commands',
+        'a01.cli',
         'a01.models',
         'a01.operations',
         'a01.output',

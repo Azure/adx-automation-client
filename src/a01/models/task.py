@@ -1,11 +1,6 @@
-import os.path
-import json
-from typing import Tuple, Generator
+from typing import Tuple
 
-import requests
-
-from a01.common import get_logger, A01Config
-from a01.communication import session
+from a01.common import get_logger
 
 
 class Task(object):  # pylint: disable=too-many-instance-attributes
@@ -31,20 +26,13 @@ class Task(object):  # pylint: disable=too-many-instance-attributes
     def command(self) -> str:
         return self.settings['execution']['command']
 
-    @classmethod
-    def get(cls, task_id: str) -> 'Task':
-        try:
-            resp = session.get(f'{cls.endpoint_uri()}/task/{task_id}')
-            resp.raise_for_status()
-            return Task.from_dict(resp.json())
-        except requests.HTTPError as error:
-            cls.logger.debug('HttpError', exc_info=True)
-            if error.response.status_code == 404:
-                raise ValueError(f'Task {task_id} is not found.')
-            raise ValueError('Fail to get runs.')
-        except (KeyError, json.JSONDecodeError, TypeError):
-            cls.logger.debug('JsonError', exc_info=True)
-            raise ValueError('Fail to parse the runs data.')
+    @property
+    def log_resource_uri(self):
+        return self.result_details.get('a01.reserved.tasklogpath', None)
+
+    @property
+    def record_resource_uri(self):
+        return self.result_details.get('a01.reserved.taskrecordpath', None)
 
     def to_dict(self) -> dict:
         result = {
@@ -67,51 +55,9 @@ class Task(object):  # pylint: disable=too-many-instance-attributes
 
         return result
 
-    def get_log_content(self) -> Generator[str, None, None]:
-        log_path = self.result_details.get('a01.reserved.tasklogpath', None)
-        if not log_path:
-            return
-
-        resp = requests.get(log_path)
-        if resp.status_code == 404:
-            yield '>', 'Log not found (task might still be running, or storage was not setup for this run)\n'
-        for index, line in enumerate(resp.content.decode('utf-8').split('\n')):
-            yield '>', f' {index}\t{line}'
-
     def get_table_view(self) -> Tuple[str, ...]:
         return self.id, self.name, self.status, self.result, self.result_details.get('agent', None), self.duration
 
     @staticmethod
     def get_table_header() -> Tuple[str, ...]:
         return 'Id', 'Name', 'Status', 'Result', 'Agent', 'Duration(ms)'
-
-    def download_recording(self, az_mode: bool) -> None:
-        recording_path = self.result_details.get('a01.reserved.taskrecordpath', None)
-        if not recording_path:
-            return
-
-        resp = requests.get(recording_path)
-        if resp.status_code != 200:
-            return
-
-        path_paths = self.settings['classifier']['identifier'].split('.')
-        if az_mode:
-            module_name = path_paths[3]
-            method_name = path_paths[-1]
-            profile_name = path_paths[-4]
-            recording_path = os.path.join('recording', f'azure-cli-{module_name}', 'azure', 'cli', 'command_modules',
-                                          module_name, 'tests', profile_name, 'recordings', f'{method_name}.yaml')
-        else:
-            path_paths[-1] = path_paths[-1] + '.yaml'
-            path_paths.insert(0, 'recording')
-            recording_path = os.path.join(*path_paths)
-
-        os.makedirs(os.path.dirname(recording_path), exist_ok=True)
-        with open(recording_path, 'wb') as recording_file:
-            recording_file.write(resp.content)
-
-    @staticmethod
-    def endpoint_uri():
-        config = A01Config()
-        config.ensure_config()
-        return config.endpoint_uri
