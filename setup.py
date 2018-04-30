@@ -2,7 +2,6 @@
 
 import os
 import sys
-import datetime
 from setuptools import setup
 
 ROOT_INIT = os.path.join(os.path.dirname(__file__), 'src', 'a01', '__init__.py')

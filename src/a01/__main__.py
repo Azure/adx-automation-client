@@ -1,21 +1,18 @@
-from a01 import __version__
-from a01.cli import cmd
+import a01
+import a01.cli
 
 
-@cmd('version', desc='Print version information')
+@a01.cli.cmd('version', desc='Print version information')
 def version() -> None:
-    print(__version__)
+    print(a01.__version__)
 
 
 def main() -> None:
-    from a01.cli import setup_commands
-
     __import__('a01.runs')
     __import__('a01.config')
     __import__('a01.auth')
-    __import__('a01.repo')
     __import__('a01.commands')
-    parser = setup_commands()
+    parser = a01.cli.setup_commands()
 
     args = parser.parse_args()
     args.func(args)

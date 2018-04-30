@@ -20,7 +20,10 @@ async def query_tasks_by_run_async(run_id: str) -> List[Task]:
         return [Task.from_dict(each) for each in await session.get_json(f'run/{run_id}/tasks')]
 
 
-async def download_recording_async(recording_uri: str, task_identifier: str, az_mode: bool, session: AsyncSession) -> None:
+async def download_recording_async(recording_uri: str,
+                                   task_identifier: str,
+                                   az_mode: bool,
+                                   session: AsyncSession) -> None:
     if not recording_uri:
         return
 

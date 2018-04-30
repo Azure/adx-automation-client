@@ -10,22 +10,23 @@ from kubernetes import config as kube_config
 from kubernetes import client as kube_client
 from tabulate import tabulate
 
-from a01.models import Task, Run
-from a01.cli import cmd, arg
+import a01.cli
+from a01.operations import query_tasks_async, query_run_async
+
 
 # pylint: disable=too-many-statements
 
 
-@cmd('repo task', desc="Rerun a task locally")
-@arg('task_id', positional=True)
-@arg('live', help='Rerun in live env')
-@arg('interactive', option=['-i', '--interactive'], help='Start the container in interactive mode')
-@arg('shell', help='The shell to use for interactive mode')
-@arg('mode', help='Need a mode')
-def reproduce_task(task_id: str, live: bool = False, interactive: bool = False, shell: str = '/bin/bash',
-                   mode: str = None) -> None:
-    task = Task.get(task_id)
-    run = Run.get(task.run_id)
+@a01.cli.cmd('repo task', desc="Rerun a task locally")
+@a01.cli.arg('task_id', positional=True)
+@a01.cli.arg('live', help='Rerun in live env')
+@a01.cli.arg('interactive', option=['-i', '--interactive'], help='Start the container in interactive mode')
+@a01.cli.arg('shell', help='The shell to use for interactive mode')
+@a01.cli.arg('mode', help='Need a mode')
+async def reproduce_task(task_id: str, live: bool = False, interactive: bool = False, shell: str = '/bin/bash',
+                         mode: str = None) -> None:
+    task = (await query_tasks_async([task_id]))[0]
+    run = await query_run_async(task.run_id)
 
     summary = {
         'name': task.name,
