@@ -1,8 +1,10 @@
+import sys
 import inspect
 import argparse
 import asyncio
 from typing import Callable
 
+from a01.output import CommandOutput
 from .argument_definition import ArgumentDefinition
 
 
@@ -39,6 +41,11 @@ class CommandDefinition(object):
 
         return self.func(**kwargs)
 
+    def output(self, arg: argparse.Namespace):
+        result = self.execute(arg)
+        if isinstance(result, CommandOutput):
+            sys.stdout.write(result.get_default_view())
+
     def setup(self, parser: argparse.ArgumentParser) -> None:
         parser.description = self.description
 
@@ -46,7 +53,7 @@ class CommandDefinition(object):
             argument_definition = self.argument_definitions.get(name, None)
             argument_definition.setup(parser, parameter)
 
-        parser.set_defaults(func=self.execute)
+        parser.set_defaults(func=self.output)
 
 
 class CommandNode(object):

@@ -7,8 +7,7 @@ import adal
 import tabulate
 import requests.auth
 
-import a01.cli
-from a01.common import get_logger, CONFIG_DIR, CONFIG_FILE, TOKEN_FILE, AUTHORITY_URL, CLIENT_ID, RESOURCE_ID, A01Config
+from a01.common import get_logger, CONFIG_DIR, TOKEN_FILE, AUTHORITY_URL, CLIENT_ID, RESOURCE_ID
 
 
 class AuthenticationError(Exception):
@@ -178,50 +177,3 @@ class A01Auth(requests.auth.AuthBase):  # pylint: disable=too-few-public-methods
 
         req.headers['Authorization'] = self.auth.access_token
         return req
-
-
-@a01.cli.cmd('login', desc='Log in with Microsoft account.')
-@a01.cli.arg('endpoint', help='Host name of the target A01 system.', required=True)
-@a01.cli.arg('service_principal', option=['--sp'], help='Login with a service principal.')
-@a01.cli.arg('username', option=['--username', '-u'], help='The username of the service principal.')
-@a01.cli.arg('password', option=['--password', '-p'], help='The password of the service principal.')
-def login(endpoint: str, service_principal: bool = False, username: str = None, password: str = None) -> None:
-    logger = get_logger('login')
-    try:
-        requests.get(f'https://{endpoint}/api/healthy').raise_for_status()
-    except (requests.HTTPError, requests.ConnectionError):
-        logger.error(f'Cannot reach endpoint https://{endpoint}/api/healthy')
-        sys.exit(1)
-
-    auth = AuthSettings()
-    if service_principal:
-        if not username or not password:
-            logger.error('Username or password is missing.')
-            sys.exit(1)
-
-        if not auth.login_service_principal(username, password):
-            logger.error(f'Fail to login using service principal {username}.')
-            sys.exit(1)
-    else:
-        if not auth.login():
-            sys.exit(1)
-
-    config = A01Config()
-    config.endpoint = endpoint
-    if not config.save():
-        logger.error(f'Cannot read or write to file {CONFIG_FILE}')
-        sys.exit(1)
-    sys.exit(0)
-
-
-@a01.cli.cmd('logout', desc='Log out - clear the credentials')
-def logout() -> None:
-    AuthSettings().logout()
-
-
-@a01.cli.cmd('whoami', desc='Describe the current credential')
-def whoami() -> None:
-    try:
-        print(AuthSettings().summary)
-    except AuthenticationError:
-        print('You need to login. Usage: a01 login.')

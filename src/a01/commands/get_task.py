@@ -1,11 +1,8 @@
-from itertools import zip_longest
-
-import colorama
-
 import a01.cli
 import a01.models
-from a01.output import output_in_table
-from a01.operations import query_tasks
+from a01.output import TaskBriefOutput, TaskLogOutput, SequentialOutput, CommandOutput
+from a01.operations import query_tasks_async, download_recording_async, get_log_content_async
+from a01.transport import AsyncSession
 
 
 @a01.cli.cmd('get task', desc='Retrieve tasks information.')
@@ -18,18 +15,24 @@ from a01.operations import query_tasks
 @a01.cli.arg('recording_az_mode', option=['--az-mode'],
              help='When download the recording files the files are arranged in directory structure mimic Azure CLI '
                   'source code.')
-def get_task(ids: [str], log: bool = False, recording: bool = False, recording_az_mode: bool = False) -> None:
-    tasks = query_tasks(ids)
+async def get_task(ids: [str],
+                   log: bool = False,
+                   recording: bool = False,
+                   recording_az_mode: bool = False) -> CommandOutput:
+    tasks = await query_tasks_async(ids)
+    output = SequentialOutput()
 
-    for task in tasks:
-        output_in_table(zip_longest(task.get_table_header(), task.get_table_view()), tablefmt='plain')
+    async with AsyncSession() as session:
+        for task in tasks:
+            output.append(TaskBriefOutput(task))
 
-        if log:
-            print()
-            output_in_table(task.get_log_content(), tablefmt='plain', foreground_color=colorama.Fore.CYAN)
+            if log:
+                output.append(TaskLogOutput(await get_log_content_async(task.log_resource_uri, session)))
 
-        if recording:
-            print()
-            task.download_recording(recording_az_mode)
+            if recording:
+                await download_recording_async(task.record_resource_uri,
+                                               task.identifier,
+                                               recording_az_mode,
+                                               session)
 
-        print()
+    return output
