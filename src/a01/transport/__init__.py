@@ -1,6 +1,6 @@
 import sys
 from logging import getLogger
-from typing import Union, List
+from typing import Union, List, Tuple
 
 from aiohttp import ClientSession, ContentTypeError
 
@@ -18,14 +18,25 @@ class AsyncSession(ClientSession):
     def get_path(self, path: str) -> str:
         return f'{self.endpoint}/{path}'
 
-    async def get_json(self, path: str) -> Union[List, dict, float, str, None]:
+    def get_headers(self) -> dict:
         if self.auth.is_expired and not self.auth.refresh():
             self.logger.error('Fail to refresh access token. Please login again.')
             sys.exit(1)
 
-        headers = {'Authorization': self.auth.access_token}
+        return {'Authorization': self.auth.access_token}
 
-        async with self.get(self.get_path(path), headers=headers) as resp:
+    async def post_auth(self, path: str) -> Tuple[int, str]:
+        async with self.post(self.get_path(path), headers=self.get_headers()) as resp:
+            content = await resp.text()
+            return resp.status, content
+
+    async def delete_auth(self, path: str) -> Tuple[int, str]:
+        async with self.delete(self.get_path(path), headers=self.get_headers()) as resp:
+            content = await resp.text()
+            return resp.status, content
+
+    async def get_json(self, path: str) -> Union[List, dict, float, str, None]:
+        async with self.get(self.get_path(path), headers=self.get_headers()) as resp:
             try:
                 return await resp.json()
             except ContentTypeError:

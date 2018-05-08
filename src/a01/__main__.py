@@ -8,7 +8,6 @@ def version() -> None:
 
 
 def main() -> None:
-    __import__('a01.runs')
     __import__('a01.config')
     __import__('a01.auth')
     __import__('a01.commands')
