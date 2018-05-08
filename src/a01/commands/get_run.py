@@ -1,5 +1,6 @@
 import sys
 import logging
+import re
 
 from a01.cli import cmd, arg
 from a01.output import (SequentialOutput, TaskBriefOutput, TaskLogOutput, JsonOutput, CommandOutput,
@@ -16,20 +17,26 @@ from a01.transport import AsyncSession
      help='Download the recording files in recording directory at current working directory. The recordings '
           'are flatten with the full test path as the file name if --az-mode is not specified. If --az-mode is '
           'set, the recording files are arranged in directory structure mimic Azure CLI source code.')
-@arg('show_all', option=['--show-all'], help='Show all the tasks results.')
+@arg('include_success', option=['--include-success'], help='Include results of the succeed tasks.')
 @arg('recording_az_mode', option=['--az-mode'],
      help='When download the recording files the files are arranged in directory structure mimic Azure CLI '
           'source code.')
+@arg('query', help='Filter the tasks\'s identifiers. It is a regex.')
 @arg('raw', help='For debug.')
 async def get_run(run_id: str, log: bool = False, recording: bool = False, recording_az_mode: bool = False,
-                  show_all: bool = False, raw: bool = False) -> CommandOutput:
+                  include_success: bool = False, query: str = None, raw: bool = False) -> CommandOutput:
     logger = logging.getLogger(__name__)
     output = SequentialOutput()
 
     try:
         async with AsyncSession() as session:
             tasks = [Task.from_dict(each) for each in await session.get_json(f'run/{run_id}/tasks')]
-            tasks_output = TasksOutput(tasks, show_all)
+            if query:
+                regex = re.compile(query)
+                tasks = [each for each in tasks if regex.match(each.identifier)]
+            tasks = sorted(tasks, key=lambda t: t.identifier)
+
+            tasks_output = TasksOutput(tasks, include_success)
 
             output.append(tasks_output)
             output.append(TasksSummary(tasks))
