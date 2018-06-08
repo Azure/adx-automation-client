@@ -7,9 +7,10 @@ before_install:
 - sudo apt-get install -y apt-transport-https
 - sudo apt-get -qq update && sudo apt-get install -y azure-cli
 install:
-- pip install -r requirements.txt
+- pip install pipenv
+- pipenv install --dev
 script:
-- pylint src
+- pipenv run pylint src
 deploy:
 - provider: script
   script: ./setup.py bdist_wheel && ./scripts/publish.sh
