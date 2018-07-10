@@ -9,6 +9,8 @@ before_install:
 install:
 - pip install pipenv
 - pipenv sync --python python3 --dev
+scripts:
+- pylint a01
 deploy:
 - provider: script
   script: pipenv run ./setup.py bdist_wheel && ./scripts/publish.sh

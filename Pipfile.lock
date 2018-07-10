@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "61b4a5fef929d04d0ef3002d91cefb52ca9f978d15e6fbdb875ecdabf2392987"
+            "sha256": "97646f059dd3fe33d389f14e0668e3b500200d59010d8e3728ee1a93ea0ff1a1"
         },
         "pipfile-spec": 6,
         "requires": {},
@@ -21,6 +21,10 @@
             ],
             "index": "pypi",
             "version": "==0.5.0"
+        },
+        "adx-automation-cli": {
+            "editable": true,
+            "path": "."
         },
         "aiohttp": {
             "hashes": [
