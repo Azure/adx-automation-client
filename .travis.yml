@@ -7,6 +7,7 @@ before_install:
 - sudo apt-get install -y apt-transport-https
 - sudo apt-get -qq update && sudo apt-get install -y azure-cli
 install:
+- pip install pipenv
 - pipenv sync --python python3 --dev
 deploy:
 - provider: script
