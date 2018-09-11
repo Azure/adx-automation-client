@@ -95,7 +95,7 @@ az storage share generate-sas-n k8slog --expiry <choose-an-expiry> --permissions
 
 The full SAS URI should look something like this:
 
-```
+``` url
 https://mytests.file.core.windows.net/k8slog/{}?se=2019-10-31T00%3A00%3A00Z&sp=r&sv=2017-07-29&sr=s&sig=veryInterestingSignature
 ```
 

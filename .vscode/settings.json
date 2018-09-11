@@ -9,5 +9,6 @@
         "**/*.pyc": true,
         "**/*.egg-info/": true,
         ".idea/":true
-    }
+    },
+    "python.pythonPath": "~/.local/share/virtualenvs/client-91ry2fC6/bin/python"
 }
