@@ -38,10 +38,9 @@ DEPENDENCIES = [
     'coloredlogs>=8.0',
     'colorama>=0.3.9',
     'adal>=0.5.0',
-    'docker~=3.0.0',
-    'kubernetes~=7.0.0',
-    'docker~=3.0.0',
-    'aiohttp~=3.1.3',
+    'kubernetes~=7.0',
+    'docker~=3.0',
+    'aiohttp~=3.1',
 ]
 
 setup(
